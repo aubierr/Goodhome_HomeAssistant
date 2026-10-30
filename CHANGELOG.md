@@ -14,6 +14,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🐛 Suppression du flux d'options vide, incompatible avec les versions récentes de Home Assistant
 - 🐛 La plateforme Select plantait en configuration YAML
 - 🐛 Les binary sensors utilisaient des clés de traduction invalides (« Connectivity », « Self Learning Improve »)
+- 🐛 Le cache HTTP n'envoie plus d'en-tête `If-None-Match` sans avoir les données correspondantes (évite une erreur sur une réponse 304 après renouvellement du token)
 - 🐛 Les logs des switches et des numbers affichaient `None` au lieu du nom de l'entité, et un délai de 30 s au lieu de 40 s
 
 ### Ajouté
@@ -22,6 +23,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🔥 Action en cours (`hvac_action`) sur le thermostat : chauffe / inactif / arrêt
 - 🔘 Support de `climate.turn_on` / `climate.turn_off`
 - 🏷️ Modèle, version firmware et version matérielle affichés sur l'appareil
+- ➕ Les radiateurs ajoutés dans l'app GoodHome apparaissent sans redémarrer Home Assistant
+- 🗑️ Un radiateur retiré du compte GoodHome peut être supprimé depuis l'interface
 - 🛎️ Service `goodhome.identify_device` disponible aussi avec la configuration par l'interface, avec sa description (`services.yaml`)
 
 ### Modifié

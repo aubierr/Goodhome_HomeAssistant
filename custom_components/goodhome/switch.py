@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import build_device_info
+from .entity import async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,56 +72,57 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data.coordinator
     api = entry.runtime_data.api
     
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        # Open Window Detection switch (API parameter: window)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "window",
-                "window",
-                "mdi:window-open-variant",
+    def build_entities(devices):
+        """Créer les entités de ces radiateurs."""
+        entities = []
+        for device in devices:
+            # Open Window Detection switch (API parameter: window)
+            entities.append(
+                GoodHomeSwitch(
+                    coordinator,
+                    api,
+                    device,
+                    "window",
+                    "window",
+                    "mdi:window-open-variant",
+                )
             )
-        )
-        # Presence Sensor switch (API parameter: occupancyStatus)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "occupancyStatus",
-                "occupancy_status",
-                "mdi:account-check",
+            # Presence Sensor switch (API parameter: occupancyStatus)
+            entities.append(
+                GoodHomeSwitch(
+                    coordinator,
+                    api,
+                    device,
+                    "occupancyStatus",
+                    "occupancy_status",
+                    "mdi:account-check",
+                )
             )
-        )
-        # Self Learning switch (API parameter: selfLearning)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "selfLearning",
-                "self_learning",
-                "mdi:school",
+            # Self Learning switch (API parameter: selfLearning)
+            entities.append(
+                GoodHomeSwitch(
+                    coordinator,
+                    api,
+                    device,
+                    "selfLearning",
+                    "self_learning",
+                    "mdi:school",
+                )
             )
-        )
-        # Manual Mode switch (API parameter: noprog)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "noprog",
-                "manual_mode",
-                "mdi:hand-back-right",
+            # Manual Mode switch (API parameter: noprog)
+            entities.append(
+                GoodHomeSwitch(
+                    coordinator,
+                    api,
+                    device,
+                    "noprog",
+                    "manual_mode",
+                    "mdi:hand-back-right",
+                )
             )
-        )
-    
-    async_add_entities(entities, True)
+        return entities
+
+    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
 class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
     """Representation of a GoodHome Switch."""

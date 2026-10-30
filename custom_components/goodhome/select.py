@@ -6,7 +6,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import build_device_info
+from .entity import async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,13 +68,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data.coordinator
     api = entry.runtime_data.api
     
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        entities.append(GoodHomeTargetModeSelect(coordinator, api, device))
-    
-    async_add_entities(entities, True)
+    def build_entities(devices):
+        """Créer les entités de ces radiateurs."""
+        entities = []
+        for device in devices:
+            entities.append(GoodHomeTargetModeSelect(coordinator, api, device))
+        return entities
+
+    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
 class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
     """Representation of a GoodHome Target Mode Select."""

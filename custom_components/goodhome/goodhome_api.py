@@ -205,13 +205,14 @@ class GoodHomeAPI:
             url = f"{BASE_URL}/v1/users/{self.user_id}/devices"
             headers = self._get_headers()
             
-            # Ajouter les headers de cache si disponibles
+            # Ajouter les headers de cache, seulement si on a les données qui vont avec
             cache_key = f"devices_{self.user_id}"
-            if cache_key in self._etags:
-                headers["If-None-Match"] = self._etags[cache_key]
-            if cache_key in self._last_modified:
-                headers["If-Modified-Since"] = self._last_modified[cache_key]
-            
+            if cache_key in self._cache:
+                if cache_key in self._etags:
+                    headers["If-None-Match"] = self._etags[cache_key]
+                if cache_key in self._last_modified:
+                    headers["If-Modified-Since"] = self._last_modified[cache_key]
+
             response = requests.get(url, headers=headers, timeout=10)
             
             # Gérer le 304 Not Modified
@@ -231,18 +232,24 @@ class GoodHomeAPI:
                 if self.refresh_access_token():
                     # Réessayer avec le nouveau token
                     headers = self._get_headers()
-                    # Ré-ajouter les headers de cache
-                    if cache_key in self._etags:
-                        headers["If-None-Match"] = self._etags[cache_key]
-                    if cache_key in self._last_modified:
-                        headers["If-Modified-Since"] = self._last_modified[cache_key]
+                    # Ré-ajouter les headers de cache, seulement si on a les données qui vont avec
+                    if cache_key in self._cache:
+                        if cache_key in self._etags:
+                            headers["If-None-Match"] = self._etags[cache_key]
+                        if cache_key in self._last_modified:
+                            headers["If-Modified-Since"] = self._last_modified[cache_key]
                     response = requests.get(url, headers=headers, timeout=10)
-                    
+
                     # Gérer à nouveau le 304 après refresh du token
                     if response.status_code == 304:
-                        _LOGGER.debug("Received 304 after token refresh, using cached data")
                         if cache_key in self._cache:
+                            _LOGGER.debug("Received 304 after token refresh, using cached data")
                             return self._cache[cache_key]
+                        # 304 sans cache (ne devrait pas arriver) : recharger sans headers de cache
+                        _LOGGER.warning("Received 304 but no cache available, forcing reload")
+                        headers.pop("If-None-Match", None)
+                        headers.pop("If-Modified-Since", None)
+                        response = requests.get(url, headers=headers, timeout=10)
                 else:
                     raise GoodHomeAuthError("Failed to refresh token after 401")
             

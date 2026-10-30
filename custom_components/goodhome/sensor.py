@@ -10,7 +10,7 @@ from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .entity import build_device_info
+from .entity import async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -151,134 +151,135 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome sensor platform (config entry)."""
     coordinator = entry.runtime_data.coordinator
     
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        # Temperature sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "temperature",
-                "current_temp",
-                UnitOfTemperature.CELSIUS,
-                SensorDeviceClass.TEMPERATURE,
-                SensorStateClass.MEASUREMENT,
+    def build_entities(devices):
+        """Créer les entités de ces radiateurs."""
+        entities = []
+        for device in devices:
+            # Temperature sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "temperature",
+                    "current_temp",
+                    UnitOfTemperature.CELSIUS,
+                    SensorDeviceClass.TEMPERATURE,
+                    SensorStateClass.MEASUREMENT,
+                )
             )
-        )
-        # Target Temperature sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "target_temperature",
-                "target_temp",
-                UnitOfTemperature.CELSIUS,
-                SensorDeviceClass.TEMPERATURE,
-                None,
+            # Target Temperature sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "target_temperature",
+                    "target_temp",
+                    UnitOfTemperature.CELSIUS,
+                    SensorDeviceClass.TEMPERATURE,
+                    None,
+                )
             )
-        )
-        # Humidity sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "humidity",
-                "humidity",
-                PERCENTAGE,
-                SensorDeviceClass.HUMIDITY,
-                SensorStateClass.MEASUREMENT,
+            # Humidity sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "humidity",
+                    "humidity",
+                    PERCENTAGE,
+                    SensorDeviceClass.HUMIDITY,
+                    SensorStateClass.MEASUREMENT,
+                )
             )
-        )
-        # Comfort Temperature sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "comfort_temp",
-                "comfort_temp",
-                UnitOfTemperature.CELSIUS,
-                SensorDeviceClass.TEMPERATURE,
-                None,
+            # Comfort Temperature sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "comfort_temp",
+                    "comfort_temp",
+                    UnitOfTemperature.CELSIUS,
+                    SensorDeviceClass.TEMPERATURE,
+                    None,
+                )
             )
-        )
-        # Eco Temperature sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "eco_temp",
-                "eco_temp",
-                UnitOfTemperature.CELSIUS,
-                SensorDeviceClass.TEMPERATURE,
-                None,
+            # Eco Temperature sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "eco_temp",
+                    "eco_temp",
+                    UnitOfTemperature.CELSIUS,
+                    SensorDeviceClass.TEMPERATURE,
+                    None,
+                )
             )
-        )
-        # Antifreeze Temperature sensor
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "antifreeze_temp",
-                "antifreeze_temp",
-                UnitOfTemperature.CELSIUS,
-                SensorDeviceClass.TEMPERATURE,
-                None,
+            # Antifreeze Temperature sensor
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "antifreeze_temp",
+                    "antifreeze_temp",
+                    UnitOfTemperature.CELSIUS,
+                    SensorDeviceClass.TEMPERATURE,
+                    None,
+                )
             )
-        )
-        # Duty Cycle sensor (heating power)
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "duty_cycle",
-                "duty_cycle",
-                PERCENTAGE,
-                SensorDeviceClass.POWER_FACTOR,
-                SensorStateClass.MEASUREMENT,
+            # Duty Cycle sensor (heating power)
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "duty_cycle",
+                    "duty_cycle",
+                    PERCENTAGE,
+                    SensorDeviceClass.POWER_FACTOR,
+                    SensorStateClass.MEASUREMENT,
+                )
             )
-        )
-        # Power consumption sensor (calculated from duty_cycle and device power)
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "power_consumption",
-                "power_consumption",
-                "W",
-                SensorDeviceClass.POWER,
-                SensorStateClass.MEASUREMENT,
+            # Power consumption sensor (calculated from duty_cycle and device power)
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "power_consumption",
+                    "power_consumption",
+                    "W",
+                    SensorDeviceClass.POWER,
+                    SensorStateClass.MEASUREMENT,
+                )
             )
-        )
-        # Device Info sensor (diagnostic)
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "device_info",
-                "device_info",
-                None,
-                None,
-                None,
-                EntityCategory.DIAGNOSTIC,
+            # Device Info sensor (diagnostic)
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "device_info",
+                    "device_info",
+                    None,
+                    None,
+                    None,
+                    EntityCategory.DIAGNOSTIC,
+                )
             )
-        )
 
-        # Auto-learning progress sensor (14-day learning period)
-        entities.append(
-            GoodHomeSensor(
-                coordinator,
-                device,
-                "self_learning_days",
-                "self_learning_days",
-                "d",
-                None,
-                None,
+            # Auto-learning progress sensor (14-day learning period)
+            entities.append(
+                GoodHomeSensor(
+                    coordinator,
+                    device,
+                    "self_learning_days",
+                    "self_learning_days",
+                    "d",
+                    None,
+                    None,
+                )
             )
-        )
-    
-    async_add_entities(entities, True)
+        return entities
+
+    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
 class GoodHomeSensor(CoordinatorEntity, SensorEntity):
     """Representation of a GoodHome Sensor."""

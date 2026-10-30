@@ -126,6 +126,9 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 ### Appareil
 Chaque thermostat apparaît comme un appareil avec son modèle (`codeName`, ex. `DLRIRFH1800`), sa version de firmware et sa version matérielle.
 
+- **Nouveau radiateur** : un radiateur ajouté dans l'app GoodHome apparaît automatiquement dans Home Assistant à la mise à jour suivante (60 s maximum), sans redémarrage.
+- **Radiateur retiré** : ses entités passent en « indisponible ». Pour le supprimer, ouvrez l'appareil dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Supprimer**. La suppression n'est proposée que pour un radiateur qui n'existe plus dans le compte GoodHome.
+
 ### Service `goodhome.identify_device`
 Fait biper un thermostat pour le localiser.
 

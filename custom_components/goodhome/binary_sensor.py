@@ -9,7 +9,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .entity import build_device_info
+from .entity import async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,44 +60,45 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome binary sensor platform (config entry)."""
     coordinator = entry.runtime_data.coordinator
     
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        # Connectivity sensor
-        entities.append(
-            GoodHomeBinarySensor(
-                coordinator,
-                device,
-                "connectivity",
-                None,
-                BinarySensorDeviceClass.CONNECTIVITY,
-                EntityCategory.DIAGNOSTIC,
+    def build_entities(devices):
+        """Créer les entités de ces radiateurs."""
+        entities = []
+        for device in devices:
+            # Connectivity sensor
+            entities.append(
+                GoodHomeBinarySensor(
+                    coordinator,
+                    device,
+                    "connectivity",
+                    None,
+                    BinarySensorDeviceClass.CONNECTIVITY,
+                    EntityCategory.DIAGNOSTIC,
+                )
             )
-        )
-        # Self Learning Improve sensor (read-only status)
-        entities.append(
-            GoodHomeBinarySensor(
-                coordinator,
-                device,
-                "self_learning_improve",
-                "self_learning_improve",
-                None,
+            # Self Learning Improve sensor (read-only status)
+            entities.append(
+                GoodHomeBinarySensor(
+                    coordinator,
+                    device,
+                    "self_learning_improve",
+                    "self_learning_improve",
+                    None,
+                )
             )
-        )
-        # Problem sensor (fault system)
-        entities.append(
-            GoodHomeBinarySensor(
-                coordinator,
-                device,
-                "problem",
-                None,
-                BinarySensorDeviceClass.PROBLEM,
-                EntityCategory.DIAGNOSTIC,
+            # Problem sensor (fault system)
+            entities.append(
+                GoodHomeBinarySensor(
+                    coordinator,
+                    device,
+                    "problem",
+                    None,
+                    BinarySensorDeviceClass.PROBLEM,
+                    EntityCategory.DIAGNOSTIC,
+                )
             )
-        )
-    
-    async_add_entities(entities, True)
+        return entities
+
+    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
 class GoodHomeBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Representation of a GoodHome Binary Sensor."""

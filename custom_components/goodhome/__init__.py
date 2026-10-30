@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers import discovery
+from homeassistant.helpers.device_registry import DeviceEntry
 
 from .goodhome_api import GoodHomeAPI, GoodHomeAuthError, GoodHomeConnectionError, GoodHomeError
 
@@ -162,6 +163,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: GoodHomeConfigEntry, device_entry: DeviceEntry
+) -> bool:
+    """Autoriser la suppression d'un radiateur qui n'existe plus dans le compte GoodHome."""
+    current_ids = {device["id"] for device in entry.runtime_data.coordinator.data or []}
+    return not any(
+        domain == DOMAIN and device_id in current_ids
+        for domain, device_id in device_entry.identifiers
+    )
 
 async def async_unload_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
     """Unload a config entry."""

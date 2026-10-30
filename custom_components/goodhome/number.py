@@ -7,7 +7,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import build_device_info
+from .entity import async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,45 +61,46 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data.coordinator
     api = entry.runtime_data.api
     
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        # Comfort Temperature
-        entities.append(
-            GoodHomeTemperatureNumber(
-                coordinator,
-                api,
-                device,
-                "comfTemp",
-                "comfort_temperature",
-                "mdi:home-thermometer",
+    def build_entities(devices):
+        """Créer les entités de ces radiateurs."""
+        entities = []
+        for device in devices:
+            # Comfort Temperature
+            entities.append(
+                GoodHomeTemperatureNumber(
+                    coordinator,
+                    api,
+                    device,
+                    "comfTemp",
+                    "comfort_temperature",
+                    "mdi:home-thermometer",
+                )
             )
-        )
-        # Eco Temperature
-        entities.append(
-            GoodHomeTemperatureNumber(
-                coordinator,
-                api,
-                device,
-                "ecoTemp",
-                "eco_temperature",
-                "mdi:leaf",
+            # Eco Temperature
+            entities.append(
+                GoodHomeTemperatureNumber(
+                    coordinator,
+                    api,
+                    device,
+                    "ecoTemp",
+                    "eco_temperature",
+                    "mdi:leaf",
+                )
             )
-        )
-        # Antifreeze Temperature
-        entities.append(
-            GoodHomeTemperatureNumber(
-                coordinator,
-                api,
-                device,
-                "antifTemp",
-                "antifreeze_temperature",
-                "mdi:snowflake",
+            # Antifreeze Temperature
+            entities.append(
+                GoodHomeTemperatureNumber(
+                    coordinator,
+                    api,
+                    device,
+                    "antifTemp",
+                    "antifreeze_temperature",
+                    "mdi:snowflake",
+                )
             )
-        )
-    
-    async_add_entities(entities, True)
+        return entities
+
+    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
 class GoodHomeTemperatureNumber(CoordinatorEntity, NumberEntity):
     """Representation of a GoodHome Temperature Number."""
