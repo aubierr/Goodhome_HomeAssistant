@@ -1,6 +1,9 @@
 {
   "domain": "goodhome",
   "name": "GoodHome",
+  "categories": [
+    "climate.thermostats_heating"
+  ],
   "codeowners": [
     "@K0n3k"
   ],
