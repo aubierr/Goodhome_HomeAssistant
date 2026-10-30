@@ -6,6 +6,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
+from .entity import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,12 +96,7 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
     @property
     def device_info(self):
         """Return device info to link this entity to the same device as climate."""
-        return {
-            "identifiers": {("goodhome", self._device_id)},
-            "name": self._device_name,
-            "manufacturer": "GoodHome",
-            "model": "Thermostat",
-        }
+        return build_device_info(self.coordinator, self._device_id, self._device_name)
     
     def _get_device(self):
         """Get the device data from coordinator."""

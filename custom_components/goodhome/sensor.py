@@ -6,10 +6,11 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity import EntityCategory
+
+from .entity import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -309,12 +310,7 @@ class GoodHomeSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         """Return device info."""
-        return {
-            "identifiers": {("goodhome", self._device_id)},
-            "name": self._device_name,
-            "manufacturer": "GoodHome",
-            "model": "Thermostat",
-        }
+        return build_device_info(self.coordinator, self._device_id, self._device_name)
     
     def _get_device(self):
         """Get device from coordinator data."""

@@ -7,6 +7,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
+from .entity import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,12 +128,7 @@ class GoodHomeTemperatureNumber(CoordinatorEntity, NumberEntity):
     @property
     def device_info(self):
         """Return device info."""
-        return {
-            "identifiers": {("goodhome", self._device_id)},
-            "name": self._device_name,
-            "manufacturer": "GoodHome",
-            "model": "Thermostat",
-        }
+        return build_device_info(self.coordinator, self._device_id, self._device_name)
     
     def _get_device(self):
         """Get device from coordinator data."""

@@ -6,6 +6,7 @@ from typing import Any, Callable
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
     PRESET_AWAY,
     PRESET_COMFORT,
@@ -16,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL, DEBOUNCE_DELAY
+from .entity import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +54,10 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
     
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
     )
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_MANUAL, PRESET_AWAY]
@@ -75,12 +80,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
     @property
     def device_info(self):
         """Return device info."""
-        return {
-            "identifiers": {("goodhome", self._device_id)},
-            "name": self._attr_name,
-            "manufacturer": "GoodHome",
-            "model": "Thermostat",
-        }
+        return build_device_info(self.coordinator, self._device_id, self._attr_name)
     
     @property
     def available(self):
@@ -168,6 +168,21 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             return HVACMode.HEAT
         return HVACMode.HEAT
     
+    @property
+    def hvac_action(self):
+        """Return the current running hvac operation."""
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+
+        device = self._get_device()
+        if device and device.get("state"):
+            duty_cycle = device["state"].get("dutyCycle")
+            if duty_cycle is None:
+                return None
+            # dutyCycle > 0 = la résistance chauffe
+            return HVACAction.HEATING if duty_cycle > 0 else HVACAction.IDLE
+        return None
+
     @property
     def preset_mode(self):
         """Return the current preset mode."""

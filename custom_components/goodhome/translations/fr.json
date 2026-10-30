@@ -115,5 +115,17 @@
         "name": "Température Hors-gel"
       }
     }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identifier l'appareil",
+      "description": "Fait biper le thermostat pour le localiser.",
+      "fields": {
+        "device_id": {
+          "name": "ID de l'appareil",
+          "description": "Identifiant GoodHome de l'appareil (attribut device_id du capteur Informations appareil)."
+        }
+      }
+    }
   }
 }

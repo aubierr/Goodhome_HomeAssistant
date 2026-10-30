@@ -115,5 +115,17 @@
         "name": "Antifreeze Temperature"
       }
     }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identify device",
+      "description": "Makes the thermostat beep so you can locate it.",
+      "fields": {
+        "device_id": {
+          "name": "Device ID",
+          "description": "GoodHome device identifier (device_id attribute of the Device information sensor)."
+        }
+      }
+    }
   }
 }

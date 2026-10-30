@@ -1,0 +1,7 @@
+identify_device:
+  fields:
+    device_id:
+      required: true
+      example: "5f1e2d3c4b5a69788796a5b4"
+      selector:
+        text:

@@ -5,6 +5,29 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.1.0] - 2026-10-30
+
+### Corrigé
+- 🐛 Le réglage de la température depuis l'entité Climate ne fonctionnait plus (méthode `set_temperature` définie deux fois dans l'API)
+- 🐛 Les erreurs de l'API étaient masquées : une panne au démarrage ne créait aucune entité, sans nouvelle tentative
+- 🐛 Un échec de connexion au démarrage était ignoré (l'intégration continuait sans token)
+- 🐛 Suppression du flux d'options vide, incompatible avec les versions récentes de Home Assistant
+- 🐛 La plateforme Select plantait en configuration YAML
+
+### Ajouté
+- 🔐 Réauthentification depuis l'interface quand le mot de passe est refusé
+- 🔁 Nouvelle tentative automatique de configuration si le cloud GoodHome est injoignable
+- 🔥 Action en cours (`hvac_action`) sur le thermostat : chauffe / inactif / arrêt
+- 🔘 Support de `climate.turn_on` / `climate.turn_off`
+- 🏷️ Modèle, version firmware et version matérielle affichés sur l'appareil
+- 🛎️ Service `goodhome.identify_device` disponible aussi avec la configuration par l'interface, avec sa description (`services.yaml`)
+
+### Modifié
+- ⬆️ Home Assistant **2024.11** minimum
+- 📦 Suppression de la dépendance `requests` du manifest (fournie par Home Assistant)
+- 🧹 `hacs.json` : suppression de la clé `domains` dépréciée, ajout de la version minimale de Home Assistant
+- 🧹 Import de `EntityCategory` depuis `homeassistant.const`
+
 ## [1.0.0] - 2025-11-11
 
 ### Ajouté

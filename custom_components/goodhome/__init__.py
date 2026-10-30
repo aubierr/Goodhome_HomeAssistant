@@ -131,6 +131,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "api": api,
     }
 
+    if not hass.services.has_service(DOMAIN, "identify_device"):
+        async def async_identify_device(call):
+            """Handle the identify device service call."""
+            device_id = call.data.get("device_id")
+            if not device_id:
+                return
+            # Trouver le compte (config entry) qui possède cet appareil
+            for entry_data in hass.data[DOMAIN].values():
+                if not isinstance(entry_data, dict) or "coordinator" not in entry_data:
+                    continue
+                devices = entry_data["coordinator"].data or []
+                if any(device["id"] == device_id for device in devices):
+                    await hass.async_add_executor_job(entry_data["api"].identify_device, device_id)
+                    return
+            _LOGGER.warning(f"GoodHome device {device_id} not found")
+
+        hass.services.async_register(DOMAIN, "identify_device", async_identify_device)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True

@@ -1,8 +1,8 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1+-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.11+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
 
@@ -33,6 +33,8 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 ### Pré-requis
 
 ⚠️ **Important** : Avant d'installer cette intégration, votre radiateur GoodHome doit être connecté au cloud GoodHome. Cette opération se fait depuis l'application mobile officielle **GoodHome** (disponible sur Android et iOS).
+
+- Home Assistant **2024.11** ou plus récent
 
 ### Via HACS (recommandé)
 
@@ -74,7 +76,8 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 ### Climate
 - `climate.xxx` - Contrôle du thermostat
   - Température cible
-  - Modes HVAC (Heat, Off)
+  - Modes HVAC (Heat, Off), avec les actions `climate.turn_on` / `climate.turn_off`
+  - Action en cours (`hvac_action`) : `heating` quand le radiateur chauffe (duty cycle > 0), `idle` sinon
   - Presets (Confort, Éco, Manuel, Absence)
   - Attributs étendus :
     - `eco_reason` : `manual` / `absence` / `schedule` / `null`
@@ -119,6 +122,18 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 - `number.xxx_comfort_temperature` - Température confort (7-30°C, pas de 0.5°C)
 - `number.xxx_eco_temperature` - Température éco (7-30°C, pas de 0.5°C)
 - `number.xxx_antifreeze_temperature` - Température hors-gel (7-30°C, pas de 0.5°C)
+
+### Appareil
+Chaque thermostat apparaît comme un appareil avec son modèle (`codeName`, ex. `DLRIRFH1800`), sa version de firmware et sa version matérielle.
+
+### Service `goodhome.identify_device`
+Fait biper un thermostat pour le localiser.
+
+```yaml
+action: goodhome.identify_device
+data:
+  device_id: "5f1e2d3c4b5a69788796a5b4"  # attribut device_id du sensor Informations appareil
+```
 
 ## 🎯 Modes targetMode
 
@@ -201,9 +216,12 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 2. Consultez les logs : **Paramètres** → **Système** → **Journaux**
 3. Redémarrez Home Assistant
 
-### Erreur 401 (Unauthorized)
-- Vérifiez vos identifiants GoodHome
+### Erreur 401 (Unauthorized) ou mot de passe changé
 - Le token est automatiquement rafraîchi, attendez 1 minute
+- Si le mot de passe est refusé, Home Assistant affiche une notification **Réauthentification requise** dans **Paramètres** → **Appareils et services** : saisissez le nouveau mot de passe, l'intégration se recharge toute seule
+
+### L'intégration indique « Nouvelle tentative de configuration »
+- Le cloud GoodHome est injoignable : Home Assistant réessaie automatiquement, aucune action n'est nécessaire
 
 ### Les modifications ne sont pas prises en compte
 - L'intégration utilise un système optimiste avec polling de confirmation (40 secondes max)

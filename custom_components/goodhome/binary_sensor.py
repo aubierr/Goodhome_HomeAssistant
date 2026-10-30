@@ -8,6 +8,8 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .entity import build_device_info
+
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -109,12 +111,7 @@ class GoodHomeBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def device_info(self):
         """Return device info."""
-        return {
-            "identifiers": {("goodhome", self._device_id)},
-            "name": self._device_name,
-            "manufacturer": "GoodHome",
-            "model": "Thermostat",
-        }
+        return build_device_info(self.coordinator, self._device_id, self._device_name)
     
     def _get_device(self):
         """Get device from coordinator data."""
