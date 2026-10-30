@@ -17,15 +17,29 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Le dépôt n'a ni sujets ni description GitHub imposés pour un fork
-          ignore: brands topics description
+          # Réglages du dépôt GitHub, désactivés par défaut sur un fork
+          ignore: brands topics description issues
 
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Version minimale prise en charge (versions figées)
+          - name: minimum
+            python: "3.12"
+            requirements: -r requirements_test.txt
+          # Dernière version de Home Assistant
+          - name: latest
+            python: "3.14"
+            requirements: pytest-homeassistant-custom-component
+    name: tests (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install -r requirements_test.txt
+          python-version: ${{ matrix.python }}
+      - run: pip install ${{ matrix.requirements }}
+      - run: python -c "import homeassistant.const as c; print('Home Assistant', c.__version__)"
       - run: pytest --cov=custom_components.goodhome --cov-report=term-missing

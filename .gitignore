@@ -16,3 +16,4 @@ ENV/
 sync_to_ha.sh
 .coverage
 .pytest_cache/
+.venv-latest/

@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.11+-brightgreen.svg)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
 
@@ -38,7 +38,7 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 
 ⚠️ **Important** : Avant d'installer cette intégration, votre radiateur GoodHome doit être connecté au cloud GoodHome. Cette opération se fait depuis l'application mobile officielle **GoodHome** (disponible sur Android et iOS).
 
-- Home Assistant **2024.11** ou plus récent
+- Home Assistant **2025.1** ou plus récent (testé de la 2025.1 à la dernière version)
 
 ### Via HACS (recommandé)
 
