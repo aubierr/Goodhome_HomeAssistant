@@ -1,0 +1,191 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurare GoodHome",
+        "description": "Introduceți adresa de email și parola contului din aplicația GoodHome.",
+        "data": {
+          "email": "Email",
+          "password": "Parolă"
+        },
+        "data_description": {
+          "email": "Adresa de email folosită pentru autentificarea în aplicația GoodHome.",
+          "password": "Parola contului din aplicația GoodHome."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reautentificare GoodHome",
+        "description": "Parola pentru {email} nu mai este validă. Introduceți parola nouă.",
+        "data": {
+          "password": "Parolă"
+        },
+        "data_description": {
+          "password": "Parola nouă a contului din aplicația GoodHome."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nu se poate conecta la GoodHome",
+      "invalid_auth": "Date de autentificare nevalide",
+      "unknown": "Eroare necunoscută"
+    },
+    "abort": {
+      "already_configured": "Acest cont GoodHome este deja configurat",
+      "reauth_successful": "Reautentificare reușită",
+      "cannot_connect": "Nu se poate conecta la GoodHome",
+      "invalid_auth": "Date de autentificare nevalide",
+      "unknown": "Eroare necunoscută"
+    }
+  },
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Confort",
+              "eco": "Eco",
+              "manual": "Manual",
+              "away": "Absență",
+              "sleep": "Absență scurtă"
+            }
+          },
+          "eco_reason": {
+            "name": "Motivul modului eco",
+            "state": {
+              "manual": "Manual",
+              "absence": "Absență detectată",
+              "schedule": "Program"
+            }
+          },
+          "window_open": {
+            "name": "Detectare fereastră deschisă"
+          },
+          "occupancy": {
+            "name": "Detectare prezență"
+          },
+          "temperature_range": {
+            "name": "Interval de temperatură",
+            "state": {
+              "cold": "Rece",
+              "medium": "Moderat",
+              "hot": "Cald"
+            }
+          },
+          "target_mode_value": {
+            "name": "Mod brut (API)"
+          },
+          "pending_confirmation": {
+            "name": "În așteptarea confirmării"
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Temperatură actuală"
+      },
+      "target_temp": {
+        "name": "Temperatură țintă"
+      },
+      "humidity": {
+        "name": "Umiditate"
+      },
+      "comfort_temp": {
+        "name": "Temperatură confort"
+      },
+      "eco_temp": {
+        "name": "Temperatură eco"
+      },
+      "antifreeze_temp": {
+        "name": "Temperatură antiîngheț"
+      },
+      "duty_cycle": {
+        "name": "Putere de încălzire"
+      },
+      "power_consumption": {
+        "name": "Consum"
+      },
+      "device_info": {
+        "name": "Informații dispozitiv"
+      },
+      "self_learning_days": {
+        "name": "Zile de autoînvățare"
+      }
+    },
+    "binary_sensor": {
+      "self_learning_improve": {
+        "name": "Îmbunătățire autoînvățare"
+      }
+    },
+    "switch": {
+      "occupancy_status": {
+        "name": "Detectare prezență"
+      },
+      "window": {
+        "name": "Detectare fereastră deschisă"
+      },
+      "self_learning": {
+        "name": "Autoînvățare"
+      },
+      "manual_mode": {
+        "name": "Mod manual"
+      }
+    },
+    "select": {
+      "target_mode": {
+        "name": "Mod de funcționare",
+        "state": {
+          "default": "Implicit (temporar)",
+          "manual_comfort": "Manual confort",
+          "manual_eco": "Manual eco",
+          "manual_frost": "Manual antiîngheț",
+          "long_absence": "Absență lungă",
+          "temporary_override": "Temperatură temporară",
+          "override": "Temperatură manuală",
+          "forced_comfort": "Confort forțat",
+          "forced_eco": "Eco forțat",
+          "short_absence": "Absență scurtă",
+          "eco_auto_absence": "Eco automat (absență)",
+          "auto_comfort": "Auto confort",
+          "auto_eco": "Auto eco",
+          "manual": "Manual"
+        }
+      }
+    },
+    "number": {
+      "comfort_temperature": {
+        "name": "Temperatură confort"
+      },
+      "eco_temperature": {
+        "name": "Temperatură eco"
+      },
+      "antifreeze_temperature": {
+        "name": "Temperatură antiîngheț"
+      }
+    }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identificare dispozitiv",
+      "description": "Face termostatul să emită un semnal sonor pentru a-l localiza.",
+      "fields": {
+        "device_id": {
+          "name": "Dispozitiv",
+          "description": "Radiatorul de localizat. Identificatorul GoodHome (atributul device_id al senzorului Informații dispozitiv) este în continuare acceptat."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "Modul {option} este gestionat de radiatorul însuși și nu poate fi selectat"
+    },
+    "command_failed": {
+      "message": "Cloudul GoodHome a refuzat comanda: {error}"
+    },
+    "device_not_found": {
+      "message": "Niciun cont GoodHome încărcat nu are radiatorul {device_id}"
+    }
+  }
+}

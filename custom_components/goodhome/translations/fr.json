@@ -3,10 +3,24 @@
     "step": {
       "user": {
         "title": "Configurer GoodHome",
-        "description": "Entrez vos identifiants GoodHome",
+        "description": "Saisissez l'email et le mot de passe de votre compte de l'application GoodHome.",
         "data": {
           "email": "Email",
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "email": "Adresse email utilisée pour se connecter à l'application GoodHome.",
+          "password": "Mot de passe du compte de l'application GoodHome."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier GoodHome",
+        "description": "Le mot de passe de {email} n'est plus valide. Saisissez le nouveau.",
+        "data": {
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Nouveau mot de passe du compte de l'application GoodHome."
         }
       }
     },
@@ -16,18 +30,57 @@
       "unknown": "Erreur inconnue"
     },
     "abort": {
-      "already_configured": "Ce compte GoodHome est déjà configuré"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Options GoodHome",
-        "description": "Configurer les options de l'intégration"
-      }
+      "already_configured": "Ce compte GoodHome est déjà configuré",
+      "reauth_successful": "Réauthentification réussie",
+      "cannot_connect": "Impossible de se connecter à GoodHome",
+      "invalid_auth": "Identifiants invalides",
+      "unknown": "Erreur inconnue"
     }
   },
   "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Confort",
+              "eco": "Éco",
+              "manual": "Manuel",
+              "away": "Absence",
+              "sleep": "Absence courte"
+            }
+          },
+          "eco_reason": {
+            "name": "Raison du mode éco",
+            "state": {
+              "manual": "Manuel",
+              "absence": "Absence détectée",
+              "schedule": "Planning"
+            }
+          },
+          "window_open": {
+            "name": "Détection fenêtre ouverte"
+          },
+          "occupancy": {
+            "name": "Détection de présence"
+          },
+          "temperature_range": {
+            "name": "Plage de consigne",
+            "state": {
+              "cold": "Froid",
+              "medium": "Modéré",
+              "hot": "Chaud"
+            }
+          },
+          "target_mode_value": {
+            "name": "Mode brut (API)"
+          },
+          "pending_confirmation": {
+            "name": "En attente de confirmation"
+          }
+        }
+      }
+    },
     "sensor": {
       "current_temp": {
         "name": "Température actuelle"
@@ -57,17 +110,12 @@
         "name": "Informations appareil"
       },
       "self_learning_days": {
-        "name": "Jours d'apprentissage",
-        "state_attributes": {
-          "description": {
-            "name": "Période d'apprentissage : 14 jours"
-          }
-        }
+        "name": "Jours d'apprentissage"
       }
     },
     "binary_sensor": {
-      "heating": {
-        "name": "Chauffage"
+      "self_learning_improve": {
+        "name": "Amélioration auto-apprentissage"
       }
     },
     "switch": {
@@ -93,6 +141,7 @@
           "manual_eco": "Manuel Éco",
           "manual_frost": "Manuel Hors-gel",
           "long_absence": "Absence longue",
+          "temporary_override": "Override provisoire",
           "override": "Manuel Override",
           "forced_comfort": "Forcé Confort",
           "forced_eco": "Forcé Éco",
@@ -114,6 +163,29 @@
       "antifreeze_temperature": {
         "name": "Température Hors-gel"
       }
+    }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identifier l'appareil",
+      "description": "Fait biper le thermostat pour le localiser.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "Radiateur à faire biper. L'identifiant GoodHome (attribut device_id du capteur Informations appareil) reste accepté."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "Le mode {option} est géré par le radiateur lui-même et ne peut pas être sélectionné"
+    },
+    "command_failed": {
+      "message": "Le cloud GoodHome a refusé la commande : {error}"
+    },
+    "device_not_found": {
+      "message": "Aucun compte GoodHome chargé ne possède le radiateur {device_id}"
     }
   }
 }

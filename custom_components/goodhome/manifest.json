@@ -1,11 +1,17 @@
 {
   "domain": "goodhome",
   "name": "GoodHome",
-  "documentation": "https://github.com/K0n3k/Goodhome_HomeAssistant",
-  "issue_tracker": "https://github.com/K0n3k/Goodhome_HomeAssistant/issues",
-  "codeowners": ["@K0n3k"],
-  "requirements": ["requests>=2.31.0"],
-  "iot_class": "cloud_polling",
-  "version": "1.0.0",
-  "config_flow": true
+  "categories": [
+    "climate.thermostats_heating"
+  ],
+  "codeowners": [
+    "@aubierr"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/aubierr/Goodhome_HomeAssistant",
+  "integration_type": "hub",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/aubierr/Goodhome_HomeAssistant/issues",
+  "requirements": [],
+  "version": "2.1.0"
 }

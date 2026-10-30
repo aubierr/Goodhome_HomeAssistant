@@ -1,0 +1,8 @@
+identify_device:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          filter:
+            integration: goodhome

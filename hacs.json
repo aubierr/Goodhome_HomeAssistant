@@ -1,5 +1,5 @@
 {
   "name": "GoodHome",
   "render_readme": true,
-  "domains": ["climate", "sensor", "binary_sensor", "switch", "select"]
+  "homeassistant": "2025.1.0"
 }

@@ -1,0 +1,70 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "self_learning_improve": {
+        "default": "mdi:school-outline",
+        "state": {
+          "on": "mdi:school"
+        }
+      }
+    },
+    "number": {
+      "comfort_temperature": {
+        "default": "mdi:home-thermometer"
+      },
+      "eco_temperature": {
+        "default": "mdi:leaf"
+      },
+      "antifreeze_temperature": {
+        "default": "mdi:snowflake"
+      }
+    },
+    "select": {
+      "target_mode": {
+        "default": "mdi:target"
+      }
+    },
+    "sensor": {
+      "duty_cycle": {
+        "default": "mdi:radiator"
+      },
+      "device_info": {
+        "default": "mdi:information-outline"
+      },
+      "self_learning_days": {
+        "default": "mdi:calendar-check"
+      }
+    },
+    "switch": {
+      "window": {
+        "default": "mdi:window-open-variant",
+        "state": {
+          "off": "mdi:window-closed-variant"
+        }
+      },
+      "occupancy_status": {
+        "default": "mdi:account-check",
+        "state": {
+          "off": "mdi:account-off"
+        }
+      },
+      "self_learning": {
+        "default": "mdi:school",
+        "state": {
+          "off": "mdi:school-outline"
+        }
+      },
+      "manual_mode": {
+        "default": "mdi:hand-back-right",
+        "state": {
+          "off": "mdi:calendar-clock"
+        }
+      }
+    }
+  },
+  "services": {
+    "identify_device": {
+      "service": "mdi:bell-ring"
+    }
+  }
+}
