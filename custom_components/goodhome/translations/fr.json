@@ -24,7 +24,10 @@
     },
     "abort": {
       "already_configured": "Ce compte GoodHome est déjà configuré",
-      "reauth_successful": "Réauthentification réussie"
+      "reauth_successful": "Réauthentification réussie",
+      "invalid_auth": "Identifiants invalides",
+      "cannot_connect": "Impossible de se connecter à GoodHome",
+      "unknown": "Erreur inconnue"
     }
   },
   "entity": {
@@ -57,12 +60,7 @@
         "name": "Informations appareil"
       },
       "self_learning_days": {
-        "name": "Jours d'apprentissage",
-        "state_attributes": {
-          "description": {
-            "name": "Période d'apprentissage : 14 jours"
-          }
-        }
+        "name": "Jours d'apprentissage"
       }
     },
     "binary_sensor": {
@@ -135,6 +133,12 @@
   "exceptions": {
     "read_only_mode": {
       "message": "Le mode {option} est géré par le radiateur lui-même et ne peut pas être sélectionné"
+    },
+    "command_failed": {
+      "message": "Le cloud GoodHome a refusé la commande : {error}"
+    },
+    "device_not_found": {
+      "message": "Aucun compte GoodHome chargé ne possède le radiateur {device_id}"
     }
   }
 }

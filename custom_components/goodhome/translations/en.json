@@ -24,7 +24,10 @@
     },
     "abort": {
       "already_configured": "This GoodHome account is already configured",
-      "reauth_successful": "Re-authentication successful"
+      "reauth_successful": "Re-authentication successful",
+      "invalid_auth": "Invalid credentials",
+      "cannot_connect": "Cannot connect to GoodHome",
+      "unknown": "Unknown error"
     }
   },
   "entity": {
@@ -57,12 +60,7 @@
         "name": "Device Information"
       },
       "self_learning_days": {
-        "name": "Auto-Learning Days",
-        "state_attributes": {
-          "description": {
-            "name": "Learning period: 14 days"
-          }
-        }
+        "name": "Auto-Learning Days"
       }
     },
     "binary_sensor": {
@@ -135,6 +133,12 @@
   "exceptions": {
     "read_only_mode": {
       "message": "The {option} mode is managed by the radiator itself and cannot be selected"
+    },
+    "command_failed": {
+      "message": "The GoodHome cloud rejected the command: {error}"
+    },
+    "device_not_found": {
+      "message": "No loaded GoodHome account has a device with ID {device_id}"
     }
   }
 }

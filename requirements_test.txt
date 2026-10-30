@@ -1,1 +1,5 @@
-pytest-homeassistant-custom-component
+# Home Assistant 2025.1 : dernière version installable sous Windows avec Python 3.12
+pytest-homeassistant-custom-component==0.13.205
+# Version prévue par Home Assistant 2025.1 ; à partir de 4.9, pycares laisse un
+# thread actif que ce kit de test signale comme une fuite
+pycares<4.9

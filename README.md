@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.11+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -15,9 +15,12 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 - ✅ **Switch** - Détection fenêtre ouverte, présence, auto-apprentissage, mode manuel
 - ✅ **Select** - Sélection des modes targetMode (14 modes)
 - ✅ **Number** - Réglage des températures confort, éco et hors-gel
+- ✅ **Button** - Identification (fait biper le radiateur)
 
 ### Caractéristiques principales
 - 🔐 Authentification par email/password avec refresh token automatique
+- ⚙️ Client entièrement asynchrone (session HTTP de Home Assistant)
+- 🩺 Diagnostics téléchargeables, sans identifiants ni noms de pièces
 - 🚀 Cache HTTP 304 Not Modified pour optimiser les performances
 - ⚡ Mises à jour en temps réel via Socket.io (réglages et mesures), relecture de l'API toutes les 30 s en secours
 - 🔄 État optimiste : la nouvelle valeur s'affiche tout de suite et reste affichée jusqu'à la confirmation du radiateur (3 min max)
@@ -56,19 +59,9 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 4. Entrez vos identifiants GoodHome (email et mot de passe)
 5. Vos thermostats apparaîtront automatiquement !
 
-### Via YAML (optionnel)
+### Ancienne configuration YAML
 
-```yaml
-goodhome:
-  email: !secret goodhome_email
-  password: !secret goodhome_password
-```
-
-Dans `secrets.yaml` :
-```yaml
-goodhome_email: "votre@email.com"
-goodhome_password: "votre_mot_de_passe"
-```
+La configuration par `configuration.yaml` n'est plus prise en charge depuis la version 2.0. Si votre fichier contient encore un bloc `goodhome:` avec `email` et `password`, il est importé automatiquement dans l'interface au démarrage, et une alerte vous invite à retirer le bloc. Les configurations par `user_id`/`token` ne peuvent pas être importées : ajoutez le compte depuis l'interface.
 
 ## 📱 Entités créées
 
@@ -92,9 +85,7 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 - `sensor.xxx_humidity` - Humidité
 - `sensor.xxx_duty_cycle` - Cycle de chauffe (%)
 - `sensor.xxx_power_consumption` - Consommation électrique calculée (W)
-- `sensor.xxx_comfort_temp` - Température confort
-- `sensor.xxx_eco_temp` - Température éco
-- `sensor.xxx_antifreeze_temp` - Température hors-gel
+- `sensor.xxx_comfort_temp` / `eco_temp` / `antifreeze_temp` - Températures confort, éco et hors-gel (doublons des entités Number, désactivés par défaut sur les nouvelles installations)
 - `sensor.xxx_self_learning_days` - Jours d'apprentissage (0-14)
 - `sensor.xxx_device_info` - Informations appareil (diagnostic)
 
@@ -124,6 +115,9 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 - `number.xxx_eco_temperature` - Température éco (7-30°C, pas de 0.5°C)
 - `number.xxx_antifreeze_temperature` - Température hors-gel (7-30°C, pas de 0.5°C)
 
+### Button
+- `button.xxx_identify` - Fait biper le radiateur pour le localiser
+
 ### Appareil
 Chaque thermostat apparaît comme un appareil avec son modèle (`codeName`, ex. `DLRIRFH1800`), sa version de firmware et sa version matérielle.
 
@@ -131,7 +125,7 @@ Chaque thermostat apparaît comme un appareil avec son modèle (`codeName`, ex. 
 - **Radiateur retiré** : ses entités passent en « indisponible ». Pour le supprimer, ouvrez l'appareil dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Supprimer**. La suppression n'est proposée que pour un radiateur qui n'existe plus dans le compte GoodHome.
 
 ### Service `goodhome.identify_device`
-Fait biper un thermostat pour le localiser.
+Fait biper un thermostat pour le localiser (le bouton Identifier fait la même chose sans identifiant à recopier).
 
 ```yaml
 action: goodhome.identify_device
@@ -234,6 +228,10 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 - Le radiateur met de 45 s à 2 min à appliquer une commande (mesuré sur l'API réelle) : ce délai vient du radiateur, pas de l'intégration. Pendant ce temps, Home Assistant affiche la nouvelle valeur ; si le radiateur ne l'a pas confirmée au bout de 3 minutes, la valeur réelle réapparaît et un avertissement est écrit dans les journaux
 - Vérifiez la connectivité de vos radiateurs
 - Les radiateurs envoient leurs mesures au cloud quand elles changent : une valeur qui ne bouge pas est simplement stable. Il n'existe aucun moyen de forcer une remontée (le ping de `goodhome.identify_device` ne fait que biper)
+- Si une commande est refusée par le cloud, l'action Home Assistant échoue avec le message d'erreur, et l'ancienne valeur réapparaît
+
+### Joindre un diagnostic à un rapport de bug
+Ouvrez l'intégration dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Télécharger les diagnostics**. Le fichier contient les réglages et mesures des radiateurs, sans email, mot de passe, identifiants ni noms de pièces.
 
 ## 📝 Logs
 
@@ -247,6 +245,16 @@ logger:
 ```
 
 ## 🤝 Contribution
+
+### Tests
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv -r requirements_test.txt
+.venv/Scripts/python -m pytest --cov=custom_components.goodhome   # Windows ; .venv/bin/python sous Linux
+```
+
+Les tests utilisent un vrai Home Assistant avec une API GoodHome simulée, et fonctionnent sous Linux comme sous Windows. Ils tournent aussi sur GitHub Actions, avec les validations hassfest et HACS.
 
 Les contributions sont les bienvenues ! N'hésitez pas à :
 - Ouvrir une issue pour signaler un bug

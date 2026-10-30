@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0] - Non publiée
+
+Les identifiants des entités ne changent pas : historiques, tableaux de bord et automatisations restent valables.
+
+### ⚠️ Changements incompatibles
+- 🗑️ Configuration YAML supprimée : un bloc `goodhome:` avec `email`/`password` est importé automatiquement dans l'interface (une alerte demande de le retirer). Les configurations par `user_id`/`token` doivent être refaites depuis l'interface
+- 🏷️ Les capteurs n'ont plus les attributs génériques répétés sur chacun (version firmware, nom de pièce...) : ils restent sur le capteur Informations appareil et le thermostat
+- 🔌 Le capteur Consommation passe à « inconnu » au lieu de 0 W quand la puissance nominale ou la part de chauffe est inconnue
+- 📊 Le capteur Cycle de chauffe n'a plus la classe « facteur de puissance », qui ne correspondait pas à la mesure
+
+### Ajouté
+- 🔘 Bouton Identifier sur chaque radiateur (fait biper le radiateur, comme le service `goodhome.identify_device`)
+- 🩺 Diagnostics téléchargeables, sans email, mot de passe, identifiants ni noms de pièces
+- ❌ Une commande refusée par le cloud fait échouer l'action avec un message clair, au lieu d'une simple ligne de journal
+- 🧪 Tests automatisés (63 tests, 93 % du code) sur un vrai Home Assistant avec une API simulée, et intégration continue GitHub (hassfest, HACS, tests)
+
+### Modifié
+- ⚙️ Client API entièrement asynchrone, sur la session HTTP de Home Assistant (plus de `requests` dans des threads)
+- 🔁 Un seul renouvellement du token quand plusieurs requêtes reçoivent un 401 en même temps
+- ⏱️ Les actions se terminent dès l'envoi de la commande ; la confirmation du radiateur (45 s à 2 min) est attendue en arrière-plan, sans bloquer les automatisations
+- 🧹 Code des plateformes réécrit avec des descriptions d'entités : une base commune gère l'appareil, la disponibilité, l'état optimiste et la confirmation
+- 💤 Les températures confort, éco et hors-gel en capteurs (doublons des entités Number) sont désactivées par défaut sur les nouvelles installations
+- 📡 Classe IoT `cloud_push` (mises à jour poussées par le cloud)
+
 ## [1.1.0] - 2026-10-30
 
 ### Corrigé

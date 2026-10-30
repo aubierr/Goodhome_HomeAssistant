@@ -1,281 +1,91 @@
-"""GoodHome Switch Platform."""
-import logging
+"""Interrupteurs GoodHome (réglages booléens du radiateur)."""
+from dataclasses import dataclass
 
-from homeassistant.components.switch import SwitchEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 
-from .entity import async_add_new_devices, async_wait_for_confirmation, build_device_info
+from .entity import GoodHomeEntity, async_add_new_devices
 
-_LOGGER = logging.getLogger(__name__)
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the GoodHome switch platform (YAML config)."""
-    coordinator = hass.data["goodhome"]["coordinator"]
-    api = hass.data["goodhome"]["api"]
-    
-    devices = coordinator.data
-    entities = []
-    
-    for device in devices:
-        # Open Window Detection switch (API parameter: window)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "window",
-                "window",
-                "mdi:window-open-variant",
-            )
-        )
-        # Presence Sensor switch (API parameter: occupancyStatus)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "occupancyStatus",
-                "occupancy_status",
-                "mdi:account-check",
-            )
-        )
-        # Self Learning switch (API parameter: selfLearning)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "selfLearning",
-                "self_learning",
-                "mdi:school",
-            )
-        )
-        # Manual Mode switch (API parameter: noprog)
-        entities.append(
-            GoodHomeSwitch(
-                coordinator,
-                api,
-                device,
-                "noprog",
-                "manual_mode",
-                "mdi:hand-back-right",
-            )
-        )
-    
-    async_add_entities(entities, True)
+@dataclass(frozen=True, kw_only=True)
+class GoodHomeSwitchDescription(SwitchEntityDescription):
+    """Description d'un interrupteur ; key est le paramètre de l'API."""
+
+    description_text: str
+
+
+SWITCHES = (
+    GoodHomeSwitchDescription(
+        key="window",
+        translation_key="window",
+        icon="mdi:window-open-variant",
+        description_text="Enable/disable automatic open window detection based on temperature drop",
+    ),
+    GoodHomeSwitchDescription(
+        key="occupancyStatus",
+        translation_key="occupancy_status",
+        icon="mdi:account-check",
+        description_text="Enable/disable occupancy consideration for heating control",
+    ),
+    GoodHomeSwitchDescription(
+        key="selfLearning",
+        translation_key="self_learning",
+        icon="mdi:school",
+        description_text="Enable/disable auto-learning mode (requires occupancyStatus enabled)",
+    ),
+    GoodHomeSwitchDescription(
+        key="noprog",
+        translation_key="manual_mode",
+        icon="mdi:hand-back-right",
+        description_text="Manual mode (on) or Auto mode with scheduling (off)",
+    ),
+)
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up the GoodHome switch platform (config entry)."""
+    """Créer les interrupteurs de chaque radiateur."""
     coordinator = entry.runtime_data.coordinator
-    api = entry.runtime_data.api
-    
-    def build_entities(devices):
-        """Créer les entités de ces radiateurs."""
-        entities = []
-        for device in devices:
-            # Open Window Detection switch (API parameter: window)
-            entities.append(
-                GoodHomeSwitch(
-                    coordinator,
-                    api,
-                    device,
-                    "window",
-                    "window",
-                    "mdi:window-open-variant",
-                )
-            )
-            # Presence Sensor switch (API parameter: occupancyStatus)
-            entities.append(
-                GoodHomeSwitch(
-                    coordinator,
-                    api,
-                    device,
-                    "occupancyStatus",
-                    "occupancy_status",
-                    "mdi:account-check",
-                )
-            )
-            # Self Learning switch (API parameter: selfLearning)
-            entities.append(
-                GoodHomeSwitch(
-                    coordinator,
-                    api,
-                    device,
-                    "selfLearning",
-                    "self_learning",
-                    "mdi:school",
-                )
-            )
-            # Manual Mode switch (API parameter: noprog)
-            entities.append(
-                GoodHomeSwitch(
-                    coordinator,
-                    api,
-                    device,
-                    "noprog",
-                    "manual_mode",
-                    "mdi:hand-back-right",
-                )
-            )
-        return entities
+    async_add_new_devices(
+        entry,
+        coordinator,
+        lambda device_ids: [
+            GoodHomeSwitch(coordinator, device_id, description)
+            for device_id in device_ids
+            for description in SWITCHES
+        ],
+        async_add_entities,
+    )
 
-    async_add_new_devices(entry, coordinator, build_entities, async_add_entities)
 
-class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
-    """Representation of a GoodHome Switch."""
-    
-    def __init__(self, coordinator, api, device, parameter_name, translation_key, icon):
-        """Initialize the switch."""
-        super().__init__(coordinator)
-        self._api = api
-        self._device_id = device["id"]
-        self._device_name = device["name"]
-        self._parameter_name = parameter_name
-        self._attr_translation_key = translation_key
-        self._attr_has_entity_name = True
-        self._attr_unique_id = f"goodhome_{device['id']}_{parameter_name}"
-        self._attr_icon = icon
-        # Pas de assumed_state pour avoir un vrai toggle comme Hue
-        # On gère l'état optimiste différemment
-        self._optimistic_state = None  # État local temporaire
-        
-    @property
-    def device_info(self):
-        """Return device info."""
-        return build_device_info(self.coordinator, self._device_id, self._device_name)
-    
-    def _get_device(self):
-        """Get device from coordinator data."""
-        for device in self.coordinator.data:
-            if device["id"] == self._device_id:
-                return device
-        return None
-    
-    @property
-    def available(self):
-        """Return True if entity is available."""
-        device = self._get_device()
-        if device:
-            return device.get("connected", False)
-        return False
-    
+class GoodHomeSwitch(GoodHomeEntity, SwitchEntity):
+    """Réglage booléen d'un radiateur GoodHome."""
+
+    entity_description: GoodHomeSwitchDescription
+
+    def __init__(self, coordinator, device_id, description):
+        """Initialiser l'interrupteur."""
+        super().__init__(coordinator, device_id, f"goodhome_{device_id}_{description.key}")
+        self.entity_description = description
+
     @property
     def is_on(self):
-        """Return true if the switch is on."""
-        # Si on a un état optimiste (commande récente), l'utiliser
-        if self._optimistic_state is not None:
-            return self._optimistic_state
-        
-        # Sinon, utiliser l'état de l'API
-        device = self._get_device()
-        if device and device.get("state"):
-            state = device["state"]
-            # Convertir la valeur API en booléen
-            value = state.get(self._parameter_name)
-            if isinstance(value, bool):
-                return value
-            elif isinstance(value, (int, str)):
-                # Gérer les valeurs "0"/"1" ou 0/1
-                return str(value) == "1" or value == 1 or str(value).lower() == "true"
-        return False
-    
-    def _is_confirmed(self, expected):
-        """Vrai si l'API renvoie la valeur attendue (booléen ou 0/1)."""
-        device = self._get_device()
-        if not device or not device.get("state"):
-            return False
-        api_value = device["state"].get(self._parameter_name)
-        return api_value is expected or api_value == int(expected)
-    
-    async def async_turn_on(self, **kwargs):
-        """Turn the switch on."""
-        try:
-            # Définir l'état optimiste immédiatement
-            self._optimistic_state = True
-            self.async_write_ha_state()
-            
-            # Envoyer la commande à l'API
-            success = await self.hass.async_add_executor_job(
-                self._api.set_parameter,
-                self._device_id,
-                self._parameter_name,
-                True
-            )
-            
-            if success:
-                # Attendre que le radiateur applique la commande, puis abandonner l'état optimiste
-                await async_wait_for_confirmation(
-                    self.coordinator, lambda: self._is_confirmed(True), f"{self._device_name} {self._parameter_name} turn on"
-                )
-                self._optimistic_state = None
-                self.async_write_ha_state()
-            else:
-                # En cas d'échec, annuler l'état optimiste
-                self._optimistic_state = None
-                self.async_write_ha_state()
-                _LOGGER.error("Failed to turn on %s %s", self._device_name, self._parameter_name)
-                
-        except Exception as err:
-            # En cas d'erreur, annuler l'état optimiste
-            self._optimistic_state = None
-            self.async_write_ha_state()
-            _LOGGER.error("Error turning on %s %s: %s", self._device_name, self._parameter_name, err)
-    
-    async def async_turn_off(self, **kwargs):
-        """Turn the switch off."""
-        try:
-            # Définir l'état optimiste immédiatement
-            self._optimistic_state = False
-            self.async_write_ha_state()
-            
-            # Envoyer la commande à l'API
-            success = await self.hass.async_add_executor_job(
-                self._api.set_parameter,
-                self._device_id,
-                self._parameter_name,
-                False
-            )
-            
-            if success:
-                # Attendre que le radiateur applique la commande, puis abandonner l'état optimiste
-                await async_wait_for_confirmation(
-                    self.coordinator, lambda: self._is_confirmed(False), f"{self._device_name} {self._parameter_name} turn off"
-                )
-                self._optimistic_state = None
-                self.async_write_ha_state()
-            else:
-                # En cas d'échec, annuler l'état optimiste
-                self._optimistic_state = None
-                self.async_write_ha_state()
-                _LOGGER.error("Failed to turn off %s %s", self._device_name, self._parameter_name)
-                
-        except Exception as err:
-            # En cas d'erreur, annuler l'état optimiste
-            self._optimistic_state = None
-            self.async_write_ha_state()
-            _LOGGER.error("Error turning off %s %s: %s", self._device_name, self._parameter_name, err)
-    
+        """État du réglage (l'API peut renvoyer un booléen, 0/1 ou du texte)."""
+        value = self.state_data.get(self.entity_description.key)
+        if isinstance(value, str):
+            return value.lower() in ("1", "true")
+        return None if value is None else bool(value)
+
     @property
     def extra_state_attributes(self):
-        """Return extra state attributes."""
-        device = self._get_device()
-        if device and device.get("state"):
-            state = device["state"]
-            attrs = {}
-            
-            # Ajouter des informations contextuelles selon le switch
-            if self._parameter_name == "window":
-                attrs["window_timeout_minutes"] = state.get("windowTimeOut")
-                attrs["description"] = "Enable/disable automatic open window detection based on temperature drop"
-            elif self._parameter_name == "occupancyStatus":
-                attrs["description"] = "Enable/disable occupancy consideration for heating control"
-            elif self._parameter_name == "selfLearning":
-                attrs["self_learning_improve"] = state.get("selfLearningImprove")
-                attrs["self_learning_days"] = state.get("selfLearningCountDay")
-                attrs["description"] = "Enable/disable auto-learning mode (requires occupancyStatus enabled)"
-            elif self._parameter_name == "noprog":
-                attrs["description"] = "Manual mode (on) or Auto mode with scheduling (off)"
-                
-            return attrs
-        return {}
+        """Description du réglage, et délai pour la détection de fenêtre."""
+        attrs = {"description": self.entity_description.description_text}
+        if self.entity_description.key == "window":
+            attrs["window_timeout_minutes"] = self.state_data.get("windowTimeOut")
+        return attrs
+
+    async def async_turn_on(self, **kwargs):
+        """Activer le réglage."""
+        await self.async_send_state({self.entity_description.key: True})
+
+    async def async_turn_off(self, **kwargs):
+        """Désactiver le réglage."""
+        await self.async_send_state({self.entity_description.key: False})

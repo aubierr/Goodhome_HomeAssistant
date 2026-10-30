@@ -1,562 +1,197 @@
-"""GoodHome API Client."""
+"""Client asynchrone de l'API cloud GoodHome."""
+import asyncio
 import logging
-import requests
 import time
-import random
-import string
+
+import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "https://shkf02.goodhome.com"
+USER_AGENT = "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0"
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 
 class GoodHomeError(Exception):
-    """Base exception for GoodHome API errors."""
+    """Erreur de l'API GoodHome."""
 
 
 class GoodHomeAuthError(GoodHomeError):
-    """Raised when authentication fails (invalid credentials)."""
+    """Identifiants refusés."""
 
 
 class GoodHomeConnectionError(GoodHomeError):
-    """Raised when the GoodHome API cannot be reached."""
+    """API GoodHome injoignable ou réponse inattendue."""
 
 
-class GoodHomeAPI:
-    """Class to communicate with GoodHome API."""
-    
-    def __init__(self, user_id, token, email=None, password=None):
-        """Initialize the API client."""
-        self.user_id = user_id
-        self.token = token
-        self.refresh_token = None
-        self.email = email
-        self.password = password
-        self.sid = None
-        self.token_expiry = None
-        # Cache pour ETag/Last-Modified (gestion du 304)
-        self._cache = {}
-        self._etags = {}
-        self._last_modified = {}
-    
-    def _is_token_expired(self):
-        """Check if token is expired or about to expire."""
-        if self.token_expiry is None:
-            return False
-        # Rafraîchir 1 heure avant l'expiration
-        return time.time() > (self.token_expiry - 3600)
-    
-    def login(self):
-        """Login with email and password to get a new token."""
-        if not self.email or not self.password:
-            _LOGGER.error("Email or password not provided for login")
-            return False
-        
-        try:
-            url = f"{BASE_URL}/v1/auth/login"
-            headers = {
-                "accept": "application/json",
-                "content-type": "application/json",
-                "user-agent": "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0",
-                "accept-language": "fr-FR,fr;q=0.9",
-                "accept-encoding": "gzip, deflate, br"
-            }
-            
-            data = {
-                "email": self.email,
-                "password": self.password
-            }
-            
-            response = requests.post(url, headers=headers, json=data, timeout=10)
-            response.raise_for_status()
-            result = response.json()
-            
-            if "token" in result:
-                self.token = result["token"]
-                self.user_id = result.get("id")
-                self.refresh_token = result.get("refresh_token")
-                # Le token expire dans 24h
-                self.token_expiry = time.time() + 86400
-                _LOGGER.info("Successfully logged in and obtained new token")
-                return True
-            
-            _LOGGER.error("No token in login response")
-            return False
+def socketio_t_param():
+    """Paramètre anti-cache « t » au format Socket.io."""
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
+    num, result = int(time.time() * 1000), ""
+    for _ in range(7):
+        result = alphabet[num % 64] + result
+        num //= 64
+    return result
 
-        except requests.HTTPError as e:
-            # 4xx = identifiants refusés, le reste = problème côté serveur
-            if e.response is not None and e.response.status_code in (400, 401, 403):
-                _LOGGER.error("Login rejected: %s", e)
-                return False
-            raise GoodHomeConnectionError(f"Error during login: {e}") from e
-        except requests.RequestException as e:
-            raise GoodHomeConnectionError(f"Error during login: {e}") from e
-    
-    def refresh_access_token(self):
-        """Refresh the access token using refresh_token."""
-        if not self.refresh_token:
-            _LOGGER.warning("No refresh token available, attempting full login")
-            return self.login()
-        
-        try:
-            url = f"{BASE_URL}/v1/auth/refresh"
-            headers = {
-                "accept": "application/json",
-                "content-type": "application/json",
-                "user-agent": "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0",
-                "accept-language": "fr-FR,fr;q=0.9",
-                "accept-encoding": "gzip, deflate, br"
-            }
-            
-            data = {
-                "refresh_token": self.refresh_token
-            }
-            
-            response = requests.post(url, headers=headers, json=data, timeout=10)
-            response.raise_for_status()
-            result = response.json()
-            
-            if "token" in result:
-                self.token = result["token"]
-                self.refresh_token = result.get("refresh_token", self.refresh_token)
-                self.token_expiry = time.time() + 86400
-                _LOGGER.info("Successfully refreshed token")
-                return True
-            
-            _LOGGER.error("No token in refresh response, attempting full login")
-            return self.login()
-            
-        except Exception as e:
-            _LOGGER.error("Error refreshing token: %s, attempting full login", e)
-            return self.login()
-        
-    def _generate_t_param(self):
-        """Generate a t parameter similar to Socket.io."""
-        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
-        timestamp = int(time.time() * 1000)
-        result = ""
-        num = timestamp
-        
-        for _ in range(7):
-            idx = num % 64
-            result = alphabet[idx] + result
-            num = num // 64
-        
-        return result
-    
-    def _connect_socket(self):
-        """Establish Socket.io connection and get SID.
 
-        À faire avant chaque commande (PATCH) : elle raccourcit le délai avant
-        que le radiateur applique la commande (mesuré sur l'API réelle : 66 s
-        avec, 130 s sans ; ce délai vient du radiateur). Inutile pour les lectures.
+def _normalize_device(device):
+    """Ne garder que les champs utilisés par l'intégration."""
+    return {
+        "id": device.get("_id"),
+        "name": device.get("name"),
+        "type": device.get("type"),
+        "connected": device.get("connected", False),
+        "state": device.get("state") or {},
+    }
+
+
+class GoodHomeClient:
+    """Client de l'API GoodHome pour un compte."""
+
+    def __init__(self, session: aiohttp.ClientSession, email: str, password: str):
+        """Initialiser le client (aucune requête avant async_login)."""
+        self._session = session
+        self._email = email
+        self._password = password
+        self.user_id = None
+        self.token = None
+        self._refresh_token = None
+        self._auth_lock = asyncio.Lock()
+        # Cache HTTP : la liste des radiateurs n'est renvoyée que si elle a changé (304 sinon)
+        self._devices = None
+        self._etag = None
+
+    async def async_login(self):
+        """Se connecter avec email et mot de passe."""
+        result = await self._request_json(
+            "POST", "/v1/auth/login", json={"email": self._email, "password": self._password}, auth=False
+        )
+        if "token" not in result:
+            raise GoodHomeConnectionError("No token in login response")
+        self.token = result["token"]
+        self.user_id = result.get("id")
+        self._refresh_token = result.get("refresh_token")
+        _LOGGER.debug("Logged in to GoodHome")
+
+    async def async_renew_token(self, rejected_token=None):
+        """Renouveler le token, ou se reconnecter si le renouvellement échoue.
+
+        Plusieurs requêtes peuvent recevoir un 401 en même temps : seule la
+        première renouvelle le token (rejected_token = celui qui a été refusé).
         """
+        async with self._auth_lock:
+            if rejected_token is not None and self.token != rejected_token:
+                return
+            if self._refresh_token:
+                try:
+                    result = await self._request_json(
+                        "POST", "/v1/auth/refresh", json={"refresh_token": self._refresh_token}, auth=False
+                    )
+                    if "token" in result:
+                        self.token = result["token"]
+                        self._refresh_token = result.get("refresh_token", self._refresh_token)
+                        _LOGGER.debug("GoodHome token refreshed")
+                        return
+                except GoodHomeError as err:
+                    _LOGGER.debug("Token refresh failed (%s), logging in again", err)
+            await self.async_login()
+
+    async def async_get_devices(self):
+        """Lire tous les radiateurs du compte, indexés par identifiant."""
+        headers = {}
+        # Pas de poignée de main Socket.io : la lecture REST fonctionne sans (testé sur l'API réelle)
+        if self._devices is not None and self._etag:
+            headers["If-None-Match"] = self._etag
+        status, data, response_headers = await self._request(
+            "GET", f"/v1/users/{self.user_id}/devices", extra_headers=headers
+        )
+        if status == 304 and self._devices is not None:
+            return self._devices
+        if status == 304:
+            # 304 sans données en cache : relire sans en-tête de cache
+            self._etag = None
+            return await self.async_get_devices()
+
+        devices = {}
+        for device in (data or {}).get("devices", []):
+            normalized = _normalize_device(device)
+            if normalized["id"]:
+                devices[normalized["id"]] = normalized
+        self._devices = devices
+        self._etag = response_headers.get("ETag")
+        return devices
+
+    async def async_set_state(self, device_id, parameters):
+        """Envoyer des paramètres à un radiateur (ex. {"targetMode": 9})."""
+        # Sans cette poignée de main, le radiateur applique la commande plus tard
+        # (mesuré : 66 s avec, 130 s sans ; le délai restant vient du radiateur)
+        await self._async_socketio_handshake()
+        await self._request_json("PATCH", f"/v1/devices/{device_id}/state", json={"parameters": parameters})
+        _LOGGER.debug("Sent %s to device %s", parameters, device_id)
+
+    async def async_identify(self, device_id):
+        """Faire biper un radiateur."""
+        await self.async_set_state(device_id, {"ping": 1})
+
+    async def _async_socketio_handshake(self):
+        headers = self._socketio_headers()
+        base = f"{BASE_URL}/socket.io-v2/?EIO=3&transport=polling&userId={self.user_id}"
         try:
-            t_param = self._generate_t_param()
-            url = f"{BASE_URL}/socket.io-v2/?EIO=3&transport=polling&userId={self.user_id}&t={t_param}"
-            
-            headers = {
-                "accept": "*/*",
-                "accept-encoding": "gzip, deflate, br",
-                "user-agent": "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0",
-                "accept-language": "fr-FR,fr;q=0.9",
-                "authorization": f"Bearer {self.token}"
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            
-            # Extract SID from response
-            response_text = response.text
-            if '"sid":"' in response_text:
-                sid_start = response_text.find('"sid":"') + 7
-                sid_end = response_text.find('"', sid_start)
-                self.sid = response_text[sid_start:sid_end]
-                
-                # Maintain connection
-                t_param2 = self._generate_t_param()
-                url2 = f"{BASE_URL}/socket.io-v2/?EIO=3&transport=polling&userId={self.user_id}&t={t_param2}&sid={self.sid}"
-                requests.get(url2, headers=headers, timeout=10)
-                
-                return True
-            
-            _LOGGER.error("Failed to get SID from response")
-            return False
-            
-        except Exception as e:
-            _LOGGER.error("Error connecting to Socket.io: %s", e)
-            return False
-    
-    def _get_headers(self):
-        """Get headers for API v1 requests (with access-token like official app)."""
-        return {
+            async with self._session.get(f"{base}&t={socketio_t_param()}", headers=headers, timeout=REQUEST_TIMEOUT) as r:
+                body = await r.text()
+            if '"sid":"' not in body:
+                raise GoodHomeConnectionError("No Socket.io session id")
+            sid = body.split('"sid":"', 1)[1].split('"', 1)[0]
+            async with self._session.get(
+                f"{base}&t={socketio_t_param()}&sid={sid}", headers=headers, timeout=REQUEST_TIMEOUT
+            ) as r:
+                await r.read()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            raise GoodHomeConnectionError(f"Socket.io handshake failed: {err}") from err
+
+    def _socketio_headers(self):
+        return {"accept": "*/*", "user-agent": USER_AGENT, "authorization": f"Bearer {self.token}"}
+
+    def _headers(self, auth=True):
+        headers = {
             "accept": "application/json",
-            "user-agent": "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0",
+            "user-agent": USER_AGENT,
             "accept-language": "fr-FR,fr;q=0.9",
-            "accept-encoding": "gzip, deflate, br",
-            "access-token": self.token  # Utilisé par l'app officielle au lieu de Authorization: Bearer
         }
-    
-    def get_devices(self):
-        """Get all devices with 304 Not Modified support."""
-        try:
-            # Pas de poignée de main Socket.io : la lecture REST fonctionne sans
-            # (testé sur l'API réelle), ce qui économise 2 requêtes par cycle
-            url = f"{BASE_URL}/v1/users/{self.user_id}/devices"
-            headers = self._get_headers()
-            
-            # Ajouter les headers de cache, seulement si on a les données qui vont avec
-            cache_key = f"devices_{self.user_id}"
-            if cache_key in self._cache:
-                if cache_key in self._etags:
-                    headers["If-None-Match"] = self._etags[cache_key]
-                if cache_key in self._last_modified:
-                    headers["If-Modified-Since"] = self._last_modified[cache_key]
+        if auth:
+            # En-tête utilisé par l'app officielle à la place de Authorization: Bearer
+            headers["access-token"] = self.token
+        return headers
 
-            response = requests.get(url, headers=headers, timeout=10)
-            
-            # Gérer le 304 Not Modified
-            if response.status_code == 304:
-                if cache_key in self._cache:
-                    return self._cache[cache_key]
-                else:
-                    # Cache vide mais 304 reçu, forcer le rechargement
-                    _LOGGER.warning("Received 304 but no cache available, forcing reload")
-                    headers.pop("If-None-Match", None)
-                    headers.pop("If-Modified-Since", None)
-                    response = requests.get(url, headers=headers, timeout=10)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    # Réessayer avec le nouveau token
-                    headers = self._get_headers()
-                    # Ré-ajouter les headers de cache, seulement si on a les données qui vont avec
-                    if cache_key in self._cache:
-                        if cache_key in self._etags:
-                            headers["If-None-Match"] = self._etags[cache_key]
-                        if cache_key in self._last_modified:
-                            headers["If-Modified-Since"] = self._last_modified[cache_key]
-                    response = requests.get(url, headers=headers, timeout=10)
+    async def _request_json(self, method, path, *, json=None, auth=True):
+        _, data, _ = await self._request(method, path, json=json, auth=auth)
+        return data or {}
 
-                    # Gérer à nouveau le 304 après refresh du token
-                    if response.status_code == 304:
-                        if cache_key in self._cache:
-                            _LOGGER.debug("Received 304 after token refresh, using cached data")
-                            return self._cache[cache_key]
-                        # 304 sans cache (ne devrait pas arriver) : recharger sans headers de cache
-                        _LOGGER.warning("Received 304 but no cache available, forcing reload")
-                        headers.pop("If-None-Match", None)
-                        headers.pop("If-Modified-Since", None)
-                        response = requests.get(url, headers=headers, timeout=10)
+    async def _request(self, method, path, *, json=None, auth=True, extra_headers=None, retry=True):
+        """Faire une requête, avec un nouvel essai après renouvellement du token sur 401."""
+        token = self.token
+        headers = {**self._headers(auth), **(extra_headers or {})}
+        try:
+            async with self._session.request(
+                method, f"{BASE_URL}{path}", headers=headers, json=json, timeout=REQUEST_TIMEOUT
+            ) as response:
+                if response.status == 401 and auth and retry:
+                    pass  # traité après la fermeture de la réponse
+                elif response.status in (400, 401, 403) and not auth:
+                    raise GoodHomeAuthError(f"Login rejected (HTTP {response.status})")
+                elif response.status in (401, 403):
+                    raise GoodHomeAuthError(f"Access denied (HTTP {response.status})")
+                elif response.status == 304:
+                    return 304, None, response.headers
+                elif response.status >= 400:
+                    raise GoodHomeConnectionError(f"HTTP {response.status} on {method} {path}")
                 else:
-                    raise GoodHomeAuthError("Failed to refresh token after 401")
-            
-            response.raise_for_status()
-            
-            # Stocker les headers de cache pour les prochaines requêtes
-            if "ETag" in response.headers:
-                self._etags[cache_key] = response.headers["ETag"]
-            if "Last-Modified" in response.headers:
-                self._last_modified[cache_key] = response.headers["Last-Modified"]
-            
-            data = response.json()
-            
-            devices = []
-            if "devices" in data:
-                for device in data["devices"]:
-                    devices.append({
-                        "id": device.get("_id"),
-                        "name": device.get("name"),
-                        "type": device.get("type"),
-                        "connected": device.get("connected", False),
-                        "state": device.get("state", {})
-                    })
-            
-            # Mettre à jour le cache
-            self._cache[cache_key] = devices
-            
-            return devices
+                    # content_type=None : accepter le JSON quel que soit l'en-tête, None si corps vide
+                    data = await response.json(content_type=None)
+                    return response.status, data, response.headers
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as err:
+            raise GoodHomeConnectionError(f"Error on {method} {path}: {err}") from err
 
-        except GoodHomeError:
-            raise
-        except Exception as e:
-            raise GoodHomeConnectionError(f"Error getting devices: {e}") from e
-    
-    def get_device(self, device_id):
-        """Get a specific device with 304 Not Modified support."""
-        try:
-            url = f"{BASE_URL}/v1/devices/{device_id}/"
-            headers = self._get_headers()
-            
-            # Ajouter les headers de cache si disponibles
-            cache_key = f"device_{device_id}"
-            if cache_key in self._etags:
-                headers["If-None-Match"] = self._etags[cache_key]
-            if cache_key in self._last_modified:
-                headers["If-Modified-Since"] = self._last_modified[cache_key]
-            
-            response = requests.get(url, headers=headers, timeout=10)
-            
-            # Gérer le 304 Not Modified
-            if response.status_code == 304:
-                if cache_key in self._cache:
-                    return self._cache[cache_key]
-            
-            response.raise_for_status()
-            
-            # Stocker les headers de cache
-            if "ETag" in response.headers:
-                self._etags[cache_key] = response.headers["ETag"]
-            if "Last-Modified" in response.headers:
-                self._last_modified[cache_key] = response.headers["Last-Modified"]
-            
-            device = response.json()
-            result = {
-                "id": device.get("_id"),
-                "name": device.get("name"),
-                "type": device.get("type"),
-                "connected": device.get("connected", False),
-                "state": device.get("state", {})
-            }
-            
-            # Mettre à jour le cache
-            self._cache[cache_key] = result
-            
-            return result
-            
-        except Exception as e:
-            _LOGGER.error("Error getting device: %s", e)
-            return None
-    
-    def _invalidate_cache(self, device_id=None):
-        """Invalidate cache for a device or all devices."""
-        if device_id:
-            # Invalider le cache pour un appareil spécifique
-            cache_key = f"device_{device_id}"
-            if cache_key in self._cache:
-                del self._cache[cache_key]
-            if cache_key in self._etags:
-                del self._etags[cache_key]
-            if cache_key in self._last_modified:
-                del self._last_modified[cache_key]
-        else:
-            # Invalider tout le cache
-            self._cache.clear()
-            self._etags.clear()
-            self._last_modified.clear()
-    
-    def set_override_temperature(self, device_id, temperature):
-        """Set target temperature for a device."""
-        try:
-            if not self._connect_socket():
-                return False
-            
-            url = f"{BASE_URL}/v1/devices/{device_id}/state"
-            headers = self._get_headers()
-            headers["content-type"] = "application/json"
-            
-            # Utiliser le format parameters avec overrideTemp et targetMode
-            data = {
-                "parameters": {
-                    "overrideTemp": temperature,
-                    "targetMode": 8  # Override manuel : le radiateur garde overrideTemp
-                }
-            }
-            
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
-            
-            # Invalider le cache après modification
-            self._invalidate_cache(device_id)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    if not self._connect_socket():
-                        return False
-                    headers = self._get_headers()
-                    headers["content-type"] = "application/json"
-                    response = requests.patch(url, headers=headers, json=data, timeout=10)
-                else:
-                    return False
-            
-            response.raise_for_status()
-            
-            _LOGGER.info("Set temperature %s for device %s", temperature, device_id)
-            return True
-            
-        except Exception as e:
-            _LOGGER.error("Error setting temperature: %s", e)
-            return False
-    
-    def set_mode(self, device_id, mode):
-        """Set mode for a device."""
-        try:
-            if not self._connect_socket():
-                return False
-            
-            url = f"{BASE_URL}/v1/devices/{device_id}/state"
-            headers = self._get_headers()
-            headers["content-type"] = "application/json"
-            
-            # Utiliser le format parameters
-            data = {
-                "parameters": {
-                    "targetMode": mode
-                }
-            }
-            
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
-            
-            # Invalider le cache après modification
-            self._invalidate_cache(device_id)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    if not self._connect_socket():
-                        return False
-                    headers = self._get_headers()
-                    headers["content-type"] = "application/json"
-                    response = requests.patch(url, headers=headers, json=data, timeout=10)
-                else:
-                    return False
-            
-            response.raise_for_status()
-            
-            _LOGGER.info("Set mode %s for device %s", mode, device_id)
-            return True
-            
-        except Exception as e:
-            _LOGGER.error("Error setting mode: %s", e)
-            return False
-    
-    def identify_device(self, device_id):
-        """Make the device beep for identification."""
-        try:
-            if not self._connect_socket():
-                return False
-            
-            url = f"{BASE_URL}/v1/devices/{device_id}/state"
-            headers = self._get_headers()
-            headers["content-type"] = "application/json"
-            
-            # Envoyer la commande ping
-            data = {
-                "parameters": {
-                    "ping": 1
-                }
-            }
-            
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    if not self._connect_socket():
-                        return False
-                    headers = self._get_headers()
-                    headers["content-type"] = "application/json"
-                    response = requests.patch(url, headers=headers, json=data, timeout=10)
-                else:
-                    return False
-            
-            response.raise_for_status()
-            
-            _LOGGER.info("Identified device %s (ping)", device_id)
-            return True
-            
-        except Exception as e:
-            _LOGGER.error("Error identifying device: %s", e)
-            return False
-    
-    def set_parameter(self, device_id, parameter_name, value):
-        """Set a generic parameter for a device (for switches)."""
-        try:
-            if not self._connect_socket():
-                return False
-            
-            url = f"{BASE_URL}/v1/devices/{device_id}/state"
-            headers = self._get_headers()
-            headers["content-type"] = "application/json"
-            
-            # L'API GoodHome attend des booléens JSON (true/false) pour les switches
-            # et des nombres pour les autres paramètres
-            data = {
-                "parameters": {
-                    parameter_name: value  # Envoyer directement: bool reste bool, int reste int
-                }
-            }
-            
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
-            
-            # Invalider le cache après modification
-            self._invalidate_cache(device_id)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    if not self._connect_socket():
-                        return False
-                    headers = self._get_headers()
-                    headers["content-type"] = "application/json"
-                    response = requests.patch(url, headers=headers, json=data, timeout=10)
-                else:
-                    return False
-            
-            response.raise_for_status()
-            
-            _LOGGER.info("Set parameter %s=%s for device %s", parameter_name, value, device_id)
-            return True
-            
-        except Exception as e:
-            _LOGGER.error("Error setting parameter %s: %s", parameter_name, e)
-            return False
-    
-    def set_temperature(self, device_id, temp_type, temperature):
-        """Set a temperature setpoint (comfTemp, ecoTemp, antifTemp)."""
-        try:
-            if not self._connect_socket():
-                return False
-            
-            url = f"{BASE_URL}/v1/devices/{device_id}/state"
-            headers = self._get_headers()
-            headers["content-type"] = "application/json"
-            
-            # L'API attend des températures en float avec 1 décimale
-            data = {
-                "parameters": {
-                    temp_type: round(float(temperature), 1)
-                }
-            }
-            
-            response = requests.patch(url, headers=headers, json=data, timeout=10)
-            
-            # Invalider le cache après modification
-            self._invalidate_cache(device_id)
-            
-            # Si 401, rafraîchir le token et réessayer
-            if response.status_code == 401:
-                _LOGGER.warning("Received 401, refreshing token...")
-                if self.refresh_access_token():
-                    if not self._connect_socket():
-                        return False
-                    headers = self._get_headers()
-                    headers["content-type"] = "application/json"
-                    response = requests.patch(url, headers=headers, json=data, timeout=10)
-                else:
-                    return False
-            
-            response.raise_for_status()
-            
-            _LOGGER.info("Set temperature %s=%s°C for device %s", temp_type, temperature, device_id)
-            return True
-            
-        except Exception as e:
-            _LOGGER.error("Error setting temperature %s: %s", temp_type, e)
-            return False
+        _LOGGER.debug("Received 401 on %s %s, renewing token", method, path)
+        await self.async_renew_token(token)
+        return await self._request(method, path, json=json, auth=auth, extra_headers=extra_headers, retry=False)

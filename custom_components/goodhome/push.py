@@ -1,11 +1,9 @@
 """Écoute temps réel du cloud GoodHome (Socket.io v2 / Engine.IO v3 en long-polling).
 
-Le serveur pousse un événement « setState » dès qu'un réglage change (depuis
-l'app ou Home Assistant), avec uniquement les champs modifiés (testé sur l'API
-réelle). La relecture REST du coordinator reste active en secours, notamment
-pour les mesures (température ambiante, chauffe).
-
-Ce module ne dépend pas de Home Assistant pour pouvoir être testé seul.
+Le serveur pousse, avec uniquement les champs modifiés (testé sur l'API réelle) :
+- « setState » quand le radiateur a appliqué un réglage (depuis l'app ou Home Assistant) ;
+- « report » quand ses mesures changent (température ambiante, humidité...).
+La relecture REST du coordinator reste active en secours.
 """
 import asyncio
 import json
@@ -14,9 +12,10 @@ import time
 
 import aiohttp
 
+from .goodhome_api import BASE_URL, USER_AGENT, GoodHomeError, socketio_t_param
+
 _LOGGER = logging.getLogger(__name__)
 
-USER_AGENT = "GoodHome/2010301 CFNetwork/3826.600.41 Darwin/24.6.0"
 RECONNECT_MIN_DELAY = 5  # Délai avant reconnexion (secondes), doublé à chaque échec
 RECONNECT_MAX_DELAY = 300
 
@@ -27,16 +26,6 @@ class GoodHomePushSessionLost(Exception):
 
 class GoodHomePushAuthError(Exception):
     """Le serveur refuse le token."""
-
-
-def _t_param():
-    """Paramètre anti-cache « t » au format Socket.io."""
-    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
-    num, result = int(time.time() * 1000), ""
-    for _ in range(7):
-        result = alphabet[num % 64] + result
-        num //= 64
-    return result
 
 
 def parse_payload(payload):
@@ -56,17 +45,12 @@ def parse_payload(payload):
 class GoodHomePushClient:
     """Client Socket.io qui transmet les événements du serveur à `on_event(nom, données)`."""
 
-    def __init__(self, session: aiohttp.ClientSession, base_url, get_credentials, on_event, refresh_token=None):
-        """Initialiser le client.
-
-        get_credentials : renvoie (user_id, token) à chaque connexion (le token peut changer).
-        refresh_token : coroutine appelée quand le token est refusé.
-        """
+    def __init__(self, session: aiohttp.ClientSession, client, on_event):
+        """Initialiser le client ; client est le GoodHomeClient du compte (token à jour)."""
         self._session = session
-        self._base_url = base_url
-        self._get_credentials = get_credentials
+        self._client = client
         self._on_event = on_event
-        self._refresh_token = refresh_token
+        self._token = None  # Token de la session en cours, pour ne renouveler que celui refusé
 
     async def run(self):
         """Écouter indéfiniment, avec reconnexion automatique (s'arrête à l'annulation)."""
@@ -77,10 +61,12 @@ class GoodHomePushClient:
                 await self._listen()
             except asyncio.CancelledError:
                 raise
-            except GoodHomePushAuthError:
-                _LOGGER.warning("GoodHome push: token refused, refreshing it")
-                if self._refresh_token:
-                    await self._refresh_token()
+            except GoodHomePushAuthError as err:
+                _LOGGER.debug("GoodHome push: token refused, renewing it")
+                try:
+                    await self._client.async_renew_token(err.args[0] if err.args else None)
+                except GoodHomeError as renew_err:
+                    _LOGGER.debug("GoodHome push: token renewal failed (%s)", renew_err)
             except (aiohttp.ClientError, asyncio.TimeoutError, GoodHomePushSessionLost, ValueError) as err:
                 _LOGGER.debug("GoodHome push: connection lost (%s), reconnecting in %ss", err, delay)
 
@@ -95,21 +81,22 @@ class GoodHomePushClient:
             method, url, headers=headers, data=data, timeout=aiohttp.ClientTimeout(total=timeout)
         ) as response:
             if response.status in (401, 403):
-                raise GoodHomePushAuthError(response.status)
+                raise GoodHomePushAuthError(self._token)
             if response.status != 200:
                 # 400 = session inconnue (expirée ou fermée côté serveur)
                 raise GoodHomePushSessionLost(f"HTTP {response.status}")
             return await response.text()
 
     async def _listen(self):
-        user_id, token = self._get_credentials()
+        user_id, token = self._client.user_id, self._client.token
         if not user_id or not token:
-            raise GoodHomePushAuthError("no token")
+            raise GoodHomePushAuthError(None)
+        self._token = token
 
         headers = {"accept": "*/*", "user-agent": USER_AGENT, "authorization": f"Bearer {token}"}
-        base = f"{self._base_url}/socket.io-v2/?EIO=3&transport=polling&userId={user_id}"
+        base = f"{BASE_URL}/socket.io-v2/?EIO=3&transport=polling&userId={user_id}"
 
-        packets = parse_payload(await self._request("GET", f"{base}&t={_t_param()}", headers))
+        packets = parse_payload(await self._request("GET", f"{base}&t={socketio_t_param()}", headers))
         if not packets or not packets[0].startswith("0"):
             raise GoodHomePushSessionLost("unexpected handshake")
         opened = json.loads(packets[0][1:])
@@ -124,7 +111,7 @@ class GoodHomePushClient:
                 if ping_task.done():
                     # Fait remonter l'erreur du ping (session perdue)
                     ping_task.result()
-                payload = await self._request("GET", f"{url}&t={_t_param()}", headers, timeout=ping_interval + 20)
+                payload = await self._request("GET", f"{url}&t={socketio_t_param()}", headers, timeout=ping_interval + 20)
                 self._handle_packets(parse_payload(payload))
         finally:
             ping_task.cancel()
@@ -134,7 +121,7 @@ class GoodHomePushClient:
         post_headers = {**headers, "content-type": "text/plain;charset=UTF-8"}
         while True:
             await asyncio.sleep(interval)
-            await self._request("POST", f"{url}&t={_t_param()}", post_headers, data="1:2")
+            await self._request("POST", f"{url}&t={socketio_t_param()}", post_headers, data="1:2")
 
     def _handle_packets(self, packets):
         for packet in packets:
