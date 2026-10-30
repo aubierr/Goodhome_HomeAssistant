@@ -8,6 +8,13 @@
           "email": "Email",
           "password": "Mot de passe"
         }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier GoodHome",
+        "description": "Le mot de passe de {email} n'est plus valide. Saisissez le nouveau.",
+        "data": {
+          "password": "Mot de passe"
+        }
       }
     },
     "error": {
@@ -16,15 +23,8 @@
       "unknown": "Erreur inconnue"
     },
     "abort": {
-      "already_configured": "Ce compte GoodHome est déjà configuré"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Options GoodHome",
-        "description": "Configurer les options de l'intégration"
-      }
+      "already_configured": "Ce compte GoodHome est déjà configuré",
+      "reauth_successful": "Réauthentification réussie"
     }
   },
   "entity": {

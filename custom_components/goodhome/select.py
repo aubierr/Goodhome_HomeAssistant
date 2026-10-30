@@ -50,9 +50,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     """Set up the GoodHome select platform (YAML)."""
     if discovery_info is None:
         return
-    
-    coordinator = discovery_info["coordinator"]
-    api = discovery_info["api"]
+
+    coordinator = hass.data["goodhome"]["coordinator"]
+    api = hass.data["goodhome"]["api"]
     
     devices = coordinator.data
     entities = []

@@ -9,6 +9,19 @@ _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "https://shkf02.goodhome.com"
 
+
+class GoodHomeError(Exception):
+    """Base exception for GoodHome API errors."""
+
+
+class GoodHomeAuthError(GoodHomeError):
+    """Raised when authentication fails (invalid credentials)."""
+
+
+class GoodHomeConnectionError(GoodHomeError):
+    """Raised when the GoodHome API cannot be reached."""
+
+
 class GoodHomeAPI:
     """Class to communicate with GoodHome API."""
     
@@ -69,10 +82,15 @@ class GoodHomeAPI:
             
             _LOGGER.error("No token in login response")
             return False
-            
-        except Exception as e:
-            _LOGGER.error(f"Error during login: {e}")
-            return False
+
+        except requests.HTTPError as e:
+            # 4xx = identifiants refusés, le reste = problème côté serveur
+            if e.response is not None and e.response.status_code in (400, 401, 403):
+                _LOGGER.error(f"Login rejected: {e}")
+                return False
+            raise GoodHomeConnectionError(f"Error during login: {e}") from e
+        except requests.RequestException as e:
+            raise GoodHomeConnectionError(f"Error during login: {e}") from e
     
     def refresh_access_token(self):
         """Refresh the access token using refresh_token."""
@@ -179,9 +197,8 @@ class GoodHomeAPI:
         try:
             # Establish Socket.io connection first
             if not self._connect_socket():
-                _LOGGER.error("Failed to establish Socket.io connection")
-                return []
-            
+                raise GoodHomeConnectionError("Failed to establish Socket.io connection")
+
             url = f"{BASE_URL}/v1/users/{self.user_id}/devices"
             headers = self._get_headers()
             
@@ -211,7 +228,7 @@ class GoodHomeAPI:
                 if self.refresh_access_token():
                     # Réessayer avec le nouveau token
                     if not self._connect_socket():
-                        return []
+                        raise GoodHomeConnectionError("Failed to establish Socket.io connection")
                     headers = self._get_headers()
                     # Ré-ajouter les headers de cache
                     if cache_key in self._etags:
@@ -226,8 +243,7 @@ class GoodHomeAPI:
                         if cache_key in self._cache:
                             return self._cache[cache_key]
                 else:
-                    _LOGGER.error("Failed to refresh token after 401")
-                    return []
+                    raise GoodHomeAuthError("Failed to refresh token after 401")
             
             response.raise_for_status()
             
@@ -254,10 +270,11 @@ class GoodHomeAPI:
             self._cache[cache_key] = devices
             
             return devices
-            
+
+        except GoodHomeError:
+            raise
         except Exception as e:
-            _LOGGER.error(f"Error getting devices: {e}")
-            return []
+            raise GoodHomeConnectionError(f"Error getting devices: {e}") from e
     
     def get_device(self, device_id):
         """Get a specific device with 304 Not Modified support."""
@@ -325,7 +342,7 @@ class GoodHomeAPI:
             self._etags.clear()
             self._last_modified.clear()
     
-    def set_temperature(self, device_id, temperature):
+    def set_override_temperature(self, device_id, temperature):
         """Set target temperature for a device."""
         try:
             if not self._connect_socket():

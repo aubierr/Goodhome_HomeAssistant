@@ -274,7 +274,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
                 _LOGGER.debug(f"Setting temperature to {temp_to_set} after debounce")
                 
                 await self.hass.async_add_executor_job(
-                    self._api.set_temperature, self._device_id, temp_to_set
+                    self._api.set_override_temperature, self._device_id, temp_to_set
                 )
                 
                 # Fonction de vérification pour le polling

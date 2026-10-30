@@ -1,16 +1,34 @@
 """Config flow pour GoodHome integration."""
 import logging
+from collections.abc import Mapping
+from typing import Any
+
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 
-from .goodhome_api import GoodHomeAPI
+from .goodhome_api import GoodHomeAPI, GoodHomeConnectionError
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "goodhome"
+
+
+async def _async_validate_login(hass, email, password):
+    """Tester les credentials, retourne une clé d'erreur ou None."""
+    api = GoodHomeAPI(None, None, email, password)
+    try:
+        if await hass.async_add_executor_job(api.login):
+            return None
+        return "invalid_auth"
+    except GoodHomeConnectionError as e:
+        _LOGGER.error(f"Cannot connect to GoodHome: {e}")
+        return "cannot_connect"
+    except Exception as e:
+        _LOGGER.exception(f"Unexpected error during login: {e}")
+        return "unknown"
+
 
 class GoodHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for GoodHome."""
@@ -22,33 +40,23 @@ class GoodHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # Valider les credentials
-            try:
-                email = user_input[CONF_EMAIL]
-                password = user_input[CONF_PASSWORD]
-                
-                # Tester la connexion
-                api = GoodHomeAPI(None, None, email, password)
-                success = await self.hass.async_add_executor_job(api.login)
-                
-                if success:
-                    # Créer l'entrée de configuration
-                    await self.async_set_unique_id(email)
-                    self._abort_if_unique_id_configured()
-                    
-                    return self.async_create_entry(
-                        title=f"GoodHome ({email})",
-                        data={
-                            CONF_EMAIL: email,
-                            CONF_PASSWORD: password,
-                        },
-                    )
-                else:
-                    errors["base"] = "invalid_auth"
-                    
-            except Exception as e:
-                _LOGGER.error(f"Error during config flow: {e}")
-                errors["base"] = "cannot_connect"
+            email = user_input[CONF_EMAIL]
+            password = user_input[CONF_PASSWORD]
+
+            error = await _async_validate_login(self.hass, email, password)
+            if error is None:
+                # Créer l'entrée de configuration
+                await self.async_set_unique_id(email)
+                self._abort_if_unique_id_configured()
+
+                return self.async_create_entry(
+                    title=f"GoodHome ({email})",
+                    data={
+                        CONF_EMAIL: email,
+                        CONF_PASSWORD: password,
+                    },
+                )
+            errors["base"] = error
 
         # Afficher le formulaire
         data_schema = vol.Schema({
@@ -62,29 +70,29 @@ class GoodHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
-        return GoodHomeOptionsFlow(config_entry)
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]):
+        """Start reauth when the stored credentials are rejected."""
+        return await self.async_step_reauth_confirm()
 
+    async def async_step_reauth_confirm(self, user_input=None):
+        """Ask for a new password."""
+        errors = {}
+        reauth_entry = self._get_reauth_entry()
+        email = reauth_entry.data[CONF_EMAIL]
 
-class GoodHomeOptionsFlow(config_entries.OptionsFlow):
-    """Handle options for GoodHome."""
-
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None):
-        """Manage the options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            password = user_input[CONF_PASSWORD]
+            error = await _async_validate_login(self.hass, email, password)
+            if error is None:
+                return self.async_update_reload_and_abort(
+                    reauth_entry,
+                    data_updates={CONF_PASSWORD: password},
+                )
+            errors["base"] = error
 
         return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema({
-                # Ici tu peux ajouter des options configurables
-                # Par exemple: intervalle de mise à jour, etc.
-            }),
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"email": email},
+            errors=errors,
         )
