@@ -3,10 +3,14 @@
     "step": {
       "user": {
         "title": "Configurer GoodHome",
-        "description": "Entrez vos identifiants GoodHome",
+        "description": "Saisissez l'email et le mot de passe de votre compte de l'application GoodHome.",
         "data": {
           "email": "Email",
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "email": "Adresse email utilisée pour se connecter à l'application GoodHome.",
+          "password": "Mot de passe du compte de l'application GoodHome."
         }
       },
       "reauth_confirm": {
@@ -14,6 +18,9 @@
         "description": "Le mot de passe de {email} n'est plus valide. Saisissez le nouveau.",
         "data": {
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Nouveau mot de passe du compte de l'application GoodHome."
         }
       }
     },
@@ -25,12 +32,49 @@
     "abort": {
       "already_configured": "Ce compte GoodHome est déjà configuré",
       "reauth_successful": "Réauthentification réussie",
-      "invalid_auth": "Identifiants invalides",
       "cannot_connect": "Impossible de se connecter à GoodHome",
+      "invalid_auth": "Identifiants invalides",
       "unknown": "Erreur inconnue"
     }
   },
   "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Confort",
+              "eco": "Éco",
+              "manual": "Manuel",
+              "away": "Absence",
+              "sleep": "Absence courte"
+            }
+          },
+          "eco_reason": {
+            "name": "Raison du mode éco",
+            "state": {
+              "manual": "Manuel",
+              "absence": "Absence détectée",
+              "schedule": "Planning"
+            }
+          },
+          "window_open": {
+            "name": "Détection fenêtre ouverte"
+          },
+          "occupancy": {
+            "name": "Détection de présence"
+          },
+          "temperature_range": {
+            "name": "Plage de consigne",
+            "state": {
+              "cold": "Froid",
+              "medium": "Modéré",
+              "hot": "Chaud"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
       "current_temp": {
         "name": "Température actuelle"
@@ -64,9 +108,6 @@
       }
     },
     "binary_sensor": {
-      "heating": {
-        "name": "Chauffage"
-      },
       "self_learning_improve": {
         "name": "Amélioration auto-apprentissage"
       }

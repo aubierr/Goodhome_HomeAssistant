@@ -20,6 +20,8 @@ Les identifiants des entités ne changent pas : historiques, tableaux de bord et
 - 🖼️ L'icône de l'intégration s'affiche de nouveau (« Icon not available ») : depuis 2026, Home Assistant lit les images d'une intégration personnalisée dans son dossier `brand/`
 
 ### Ajouté
+- 🌍 Traductions en espagnol, polonais, portugais et roumain (pays où GoodHome est vendu), en plus du français et de l'anglais
+- 💬 Textes d'aide sous les champs de connexion ; preset « manual » et attributs du thermostat (`eco_reason`, `temperature_range`...) traduits
 - 🔘 Bouton Identifier sur chaque radiateur (fait biper le radiateur, comme le service `goodhome.identify_device`)
 - 🩺 Diagnostics téléchargeables, sans email, mot de passe, identifiants ni noms de pièces
 - ❌ Une commande refusée par le cloud fait échouer l'action avec un message clair, au lieu d'une simple ligne de journal

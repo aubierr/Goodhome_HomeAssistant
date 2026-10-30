@@ -1,0 +1,185 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja GoodHome",
+        "description": "Podaj adres e-mail i hasło konta aplikacji GoodHome.",
+        "data": {
+          "email": "E-mail",
+          "password": "Hasło"
+        },
+        "data_description": {
+          "email": "Adres e-mail używany do logowania w aplikacji GoodHome.",
+          "password": "Hasło konta aplikacji GoodHome."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponowne uwierzytelnienie GoodHome",
+        "description": "Hasło dla {email} jest już nieprawidłowe. Podaj nowe hasło.",
+        "data": {
+          "password": "Hasło"
+        },
+        "data_description": {
+          "password": "Nowe hasło konta aplikacji GoodHome."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z GoodHome",
+      "invalid_auth": "Nieprawidłowe dane logowania",
+      "unknown": "Nieznany błąd"
+    },
+    "abort": {
+      "already_configured": "To konto GoodHome jest już skonfigurowane",
+      "reauth_successful": "Ponowne uwierzytelnienie powiodło się",
+      "cannot_connect": "Nie można połączyć się z GoodHome",
+      "invalid_auth": "Nieprawidłowe dane logowania",
+      "unknown": "Nieznany błąd"
+    }
+  },
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Komfort",
+              "eco": "Eko",
+              "manual": "Ręczny",
+              "away": "Nieobecność",
+              "sleep": "Krótka nieobecność"
+            }
+          },
+          "eco_reason": {
+            "name": "Przyczyna trybu eko",
+            "state": {
+              "manual": "Ręcznie",
+              "absence": "Wykryta nieobecność",
+              "schedule": "Harmonogram"
+            }
+          },
+          "window_open": {
+            "name": "Wykrywanie otwartego okna"
+          },
+          "occupancy": {
+            "name": "Wykrywanie obecności"
+          },
+          "temperature_range": {
+            "name": "Zakres temperatury zadanej",
+            "state": {
+              "cold": "Zimno",
+              "medium": "Umiarkowanie",
+              "hot": "Ciepło"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Temperatura bieżąca"
+      },
+      "target_temp": {
+        "name": "Temperatura docelowa"
+      },
+      "humidity": {
+        "name": "Wilgotność"
+      },
+      "comfort_temp": {
+        "name": "Temperatura komfortowa"
+      },
+      "eco_temp": {
+        "name": "Temperatura eko"
+      },
+      "antifreeze_temp": {
+        "name": "Temperatura przeciwzamrożeniowa"
+      },
+      "duty_cycle": {
+        "name": "Moc grzania"
+      },
+      "power_consumption": {
+        "name": "Pobór mocy"
+      },
+      "device_info": {
+        "name": "Informacje o urządzeniu"
+      },
+      "self_learning_days": {
+        "name": "Dni samouczenia"
+      }
+    },
+    "binary_sensor": {
+      "self_learning_improve": {
+        "name": "Ulepszenie samouczenia"
+      }
+    },
+    "switch": {
+      "occupancy_status": {
+        "name": "Wykrywanie obecności"
+      },
+      "window": {
+        "name": "Wykrywanie otwartego okna"
+      },
+      "self_learning": {
+        "name": "Samouczenie"
+      },
+      "manual_mode": {
+        "name": "Tryb ręczny"
+      }
+    },
+    "select": {
+      "target_mode": {
+        "name": "Tryb pracy",
+        "state": {
+          "default": "Domyślny (tymczasowy)",
+          "manual_comfort": "Ręczny komfort",
+          "manual_eco": "Ręczny eko",
+          "manual_frost": "Ręczny przeciwzamrożeniowy",
+          "long_absence": "Długa nieobecność",
+          "temporary_override": "Tymczasowa temperatura",
+          "override": "Ręczna temperatura",
+          "forced_comfort": "Wymuszony komfort",
+          "forced_eco": "Wymuszony eko",
+          "short_absence": "Krótka nieobecność",
+          "eco_auto_absence": "Automatyczny eko (nieobecność)",
+          "auto_comfort": "Auto komfort",
+          "auto_eco": "Auto eko",
+          "manual": "Ręczny"
+        }
+      }
+    },
+    "number": {
+      "comfort_temperature": {
+        "name": "Temperatura komfortowa"
+      },
+      "eco_temperature": {
+        "name": "Temperatura eko"
+      },
+      "antifreeze_temperature": {
+        "name": "Temperatura przeciwzamrożeniowa"
+      }
+    }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identyfikuj urządzenie",
+      "description": "Termostat wydaje sygnał dźwiękowy, aby można go było zlokalizować.",
+      "fields": {
+        "device_id": {
+          "name": "ID urządzenia",
+          "description": "Identyfikator GoodHome urządzenia (atrybut device_id czujnika Informacje o urządzeniu)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "Tryb {option} jest zarządzany przez sam grzejnik i nie można go wybrać"
+    },
+    "command_failed": {
+      "message": "Chmura GoodHome odrzuciła polecenie: {error}"
+    },
+    "device_not_found": {
+      "message": "Żadne załadowane konto GoodHome nie ma grzejnika {device_id}"
+    }
+  }
+}

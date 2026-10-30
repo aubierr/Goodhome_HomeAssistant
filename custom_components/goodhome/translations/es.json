@@ -1,0 +1,185 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar GoodHome",
+        "description": "Introduce el correo electrónico y la contraseña de tu cuenta de la aplicación GoodHome.",
+        "data": {
+          "email": "Correo electrónico",
+          "password": "Contraseña"
+        },
+        "data_description": {
+          "email": "Correo electrónico con el que inicias sesión en la aplicación GoodHome.",
+          "password": "Contraseña de tu cuenta de la aplicación GoodHome."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Volver a autenticar GoodHome",
+        "description": "La contraseña de {email} ya no es válida. Introduce la nueva.",
+        "data": {
+          "password": "Contraseña"
+        },
+        "data_description": {
+          "password": "Nueva contraseña de tu cuenta de la aplicación GoodHome."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se puede conectar con GoodHome",
+      "invalid_auth": "Credenciales no válidas",
+      "unknown": "Error desconocido"
+    },
+    "abort": {
+      "already_configured": "Esta cuenta de GoodHome ya está configurada",
+      "reauth_successful": "Reautenticación correcta",
+      "cannot_connect": "No se puede conectar con GoodHome",
+      "invalid_auth": "Credenciales no válidas",
+      "unknown": "Error desconocido"
+    }
+  },
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Confort",
+              "eco": "Eco",
+              "manual": "Manual",
+              "away": "Ausencia",
+              "sleep": "Ausencia corta"
+            }
+          },
+          "eco_reason": {
+            "name": "Motivo del modo eco",
+            "state": {
+              "manual": "Manual",
+              "absence": "Ausencia detectada",
+              "schedule": "Programación"
+            }
+          },
+          "window_open": {
+            "name": "Detección de ventana abierta"
+          },
+          "occupancy": {
+            "name": "Detección de presencia"
+          },
+          "temperature_range": {
+            "name": "Rango de consigna",
+            "state": {
+              "cold": "Frío",
+              "medium": "Templado",
+              "hot": "Caliente"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "current_temp": {
+        "name": "Temperatura actual"
+      },
+      "target_temp": {
+        "name": "Temperatura objetivo"
+      },
+      "humidity": {
+        "name": "Humedad"
+      },
+      "comfort_temp": {
+        "name": "Temperatura confort"
+      },
+      "eco_temp": {
+        "name": "Temperatura eco"
+      },
+      "antifreeze_temp": {
+        "name": "Temperatura antihielo"
+      },
+      "duty_cycle": {
+        "name": "Potencia de calefacción"
+      },
+      "power_consumption": {
+        "name": "Consumo"
+      },
+      "device_info": {
+        "name": "Información del dispositivo"
+      },
+      "self_learning_days": {
+        "name": "Días de autoaprendizaje"
+      }
+    },
+    "binary_sensor": {
+      "self_learning_improve": {
+        "name": "Mejora del autoaprendizaje"
+      }
+    },
+    "switch": {
+      "occupancy_status": {
+        "name": "Detección de presencia"
+      },
+      "window": {
+        "name": "Detección de ventana abierta"
+      },
+      "self_learning": {
+        "name": "Autoaprendizaje"
+      },
+      "manual_mode": {
+        "name": "Modo manual"
+      }
+    },
+    "select": {
+      "target_mode": {
+        "name": "Modo de funcionamiento",
+        "state": {
+          "default": "Predeterminado (temporal)",
+          "manual_comfort": "Manual confort",
+          "manual_eco": "Manual eco",
+          "manual_frost": "Manual antihielo",
+          "long_absence": "Ausencia larga",
+          "temporary_override": "Consigna temporal",
+          "override": "Consigna manual",
+          "forced_comfort": "Confort forzado",
+          "forced_eco": "Eco forzado",
+          "short_absence": "Ausencia corta",
+          "eco_auto_absence": "Eco automático (ausencia)",
+          "auto_comfort": "Auto confort",
+          "auto_eco": "Auto eco",
+          "manual": "Manual"
+        }
+      }
+    },
+    "number": {
+      "comfort_temperature": {
+        "name": "Temperatura confort"
+      },
+      "eco_temperature": {
+        "name": "Temperatura eco"
+      },
+      "antifreeze_temperature": {
+        "name": "Temperatura antihielo"
+      }
+    }
+  },
+  "services": {
+    "identify_device": {
+      "name": "Identificar dispositivo",
+      "description": "Hace pitar el termostato para localizarlo.",
+      "fields": {
+        "device_id": {
+          "name": "ID del dispositivo",
+          "description": "Identificador GoodHome del dispositivo (atributo device_id del sensor Información del dispositivo)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "El modo {option} lo gestiona el propio radiador y no se puede seleccionar"
+    },
+    "command_failed": {
+      "message": "La nube de GoodHome rechazó el comando: {error}"
+    },
+    "device_not_found": {
+      "message": "Ninguna cuenta de GoodHome cargada tiene el radiador {device_id}"
+    }
+  }
+}

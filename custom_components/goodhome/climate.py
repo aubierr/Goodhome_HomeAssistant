@@ -65,6 +65,8 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
 
     # Entité principale de l'appareil : elle porte le nom de l'appareil
     _attr_name = None
+    # Traductions du preset « manual » et des attributs (eco_reason, temperature_range...)
+    _attr_translation_key = "radiator"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE

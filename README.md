@@ -26,7 +26,7 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 - 🔄 État optimiste : la nouvelle valeur s'affiche tout de suite et reste affichée jusqu'à la confirmation du radiateur (3 min max)
 - 🌐 Support complet de l'API GoodHome officielle
 - 🎯 100% compatible avec le projet ESPHome_GoodHome
-- 🇫🇷🇬🇧 Interface multilingue (français et anglais)
+- 🌍 Interface en français, anglais, espagnol, polonais, portugais et roumain
 - ⚙️ Configuration via interface utilisateur (config flow)
 - 📊 Calcul automatique de la consommation électrique
 - 🎓 Suivi de la période d'apprentissage (14 jours)

@@ -1,13 +1,16 @@
 {
-  "title": "GoodHome",
   "config": {
     "step": {
       "user": {
         "title": "Configure GoodHome",
-        "description": "Enter your GoodHome credentials",
+        "description": "Enter the email and password of your GoodHome app account.",
         "data": {
           "email": "Email",
           "password": "Password"
+        },
+        "data_description": {
+          "email": "Email address you use to sign in to the GoodHome app.",
+          "password": "Password of your GoodHome app account."
         }
       },
       "reauth_confirm": {
@@ -15,6 +18,9 @@
         "description": "The password for {email} is no longer valid. Enter the new one.",
         "data": {
           "password": "Password"
+        },
+        "data_description": {
+          "password": "New password of your GoodHome app account."
         }
       }
     },
@@ -26,12 +32,49 @@
     "abort": {
       "already_configured": "This GoodHome account is already configured",
       "reauth_successful": "Re-authentication successful",
-      "invalid_auth": "Invalid credentials",
       "cannot_connect": "Cannot connect to GoodHome",
+      "invalid_auth": "Invalid credentials",
       "unknown": "Unknown error"
     }
   },
   "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "manual": "Manual",
+              "away": "Away",
+              "sleep": "Short absence"
+            }
+          },
+          "eco_reason": {
+            "name": "Eco mode reason",
+            "state": {
+              "manual": "Manual",
+              "absence": "Absence detected",
+              "schedule": "Schedule"
+            }
+          },
+          "window_open": {
+            "name": "Open window detection"
+          },
+          "occupancy": {
+            "name": "Presence detection"
+          },
+          "temperature_range": {
+            "name": "Setpoint range",
+            "state": {
+              "cold": "Cold",
+              "medium": "Moderate",
+              "hot": "Warm"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
       "current_temp": {
         "name": "Current temperature"
@@ -49,7 +92,7 @@
         "name": "Eco temperature"
       },
       "antifreeze_temp": {
-        "name": "Antifreeze temperature"
+        "name": "Frost protection temperature"
       },
       "duty_cycle": {
         "name": "Heating power"
@@ -61,26 +104,23 @@
         "name": "Device information"
       },
       "self_learning_days": {
-        "name": "Auto-learning days"
+        "name": "Self-learning days"
       }
     },
     "binary_sensor": {
-      "heating": {
-        "name": "Heating"
-      },
       "self_learning_improve": {
         "name": "Self-learning improvement"
       }
     },
     "switch": {
       "occupancy_status": {
-        "name": "Presence sensor"
+        "name": "Presence detection"
       },
       "window": {
         "name": "Open window detection"
       },
       "self_learning": {
-        "name": "Self learning"
+        "name": "Self-learning"
       },
       "manual_mode": {
         "name": "Manual mode"
@@ -91,18 +131,18 @@
         "name": "Target mode",
         "state": {
           "default": "Default (temporary)",
-          "manual_comfort": "Manual Comfort",
-          "manual_eco": "Manual Eco",
-          "manual_frost": "Manual Frost Protection",
-          "long_absence": "Long Absence",
-          "temporary_override": "Temporary Override",
-          "override": "Manual Override",
-          "forced_comfort": "Forced Comfort",
-          "forced_eco": "Forced Eco",
-          "short_absence": "Short Absence",
-          "eco_auto_absence": "Eco Auto (no presence)",
-          "auto_comfort": "Auto Comfort",
-          "auto_eco": "Auto Eco",
+          "manual_comfort": "Manual comfort",
+          "manual_eco": "Manual eco",
+          "manual_frost": "Manual frost protection",
+          "long_absence": "Long absence",
+          "temporary_override": "Temporary override",
+          "override": "Manual override",
+          "forced_comfort": "Forced comfort",
+          "forced_eco": "Forced eco",
+          "short_absence": "Short absence",
+          "eco_auto_absence": "Auto eco (no presence)",
+          "auto_comfort": "Auto comfort",
+          "auto_eco": "Auto eco",
           "manual": "Manual"
         }
       }
@@ -115,7 +155,7 @@
         "name": "Eco temperature"
       },
       "antifreeze_temperature": {
-        "name": "Antifreeze temperature"
+        "name": "Frost protection temperature"
       }
     }
   },
