@@ -147,9 +147,9 @@ class GoodHomeAPI:
     def _connect_socket(self):
         """Establish Socket.io connection and get SID.
 
-        À faire avant chaque commande (PATCH) : sans elle, la commande arrive
-        au radiateur en ~45 s au lieu de quelques secondes (testé sur l'API
-        réelle). Inutile pour les lectures.
+        À faire avant chaque commande (PATCH) : elle raccourcit le délai avant
+        que le radiateur applique la commande (mesuré sur l'API réelle : 66 s
+        avec, 130 s sans ; ce délai vient du radiateur). Inutile pour les lectures.
         """
         try:
             t_param = self._generate_t_param()

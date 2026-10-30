@@ -19,7 +19,8 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 ### Caractéristiques principales
 - 🔐 Authentification par email/password avec refresh token automatique
 - 🚀 Cache HTTP 304 Not Modified pour optimiser les performances
-- 🔄 État optimiste avec polling de confirmation (40s max)
+- ⚡ Mises à jour en temps réel via Socket.io (réglages et mesures), relecture de l'API toutes les 30 s en secours
+- 🔄 État optimiste : la nouvelle valeur s'affiche tout de suite et reste affichée jusqu'à la confirmation du radiateur (3 min max)
 - 🌐 Support complet de l'API GoodHome officielle
 - 🎯 100% compatible avec le projet ESPHome_GoodHome
 - 🇫🇷🇬🇧 Interface multilingue (français et anglais)
@@ -175,7 +176,7 @@ Le **mode 30** est un mode spécial qui se déclenche automatiquement :
 
 Cette intégration utilise les mêmes endpoints et headers que l'application GoodHome officielle :
 
-- **Socket.io** : `authorization: Bearer {token}`, uniquement avant l'envoi d'une commande (la lecture des radiateurs s'en passe)
+- **Socket.io** : `authorization: Bearer {token}`. Une connexion reste ouverte pour recevoir en temps réel les événements `setState` (réglage modifié) et `report` (mesures du radiateur), qui ne contiennent que les champs modifiés. Une poignée de main a aussi lieu avant chaque commande : elle raccourcit le délai avant que le radiateur l'applique.
 - **API v1** : `access-token: {token}` + `if-none-match: {etag}`
 - **Cache HTTP 304** : Optimisation de la bande passante
 - **Paramètres booléens** : Format `true/false` JSON
@@ -230,8 +231,9 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 - Le cloud GoodHome est injoignable : Home Assistant réessaie automatiquement, aucune action n'est nécessaire
 
 ### Les modifications ne sont pas prises en compte
-- L'intégration utilise un système optimiste avec polling de confirmation (40 secondes max)
+- Le radiateur met de 45 s à 2 min à appliquer une commande (mesuré sur l'API réelle) : ce délai vient du radiateur, pas de l'intégration. Pendant ce temps, Home Assistant affiche la nouvelle valeur ; si le radiateur ne l'a pas confirmée au bout de 3 minutes, la valeur réelle réapparaît et un avertissement est écrit dans les journaux
 - Vérifiez la connectivité de vos radiateurs
+- Les radiateurs envoient leurs mesures au cloud quand elles changent : une valeur qui ne bouge pas est simplement stable. Il n'existe aucun moyen de forcer une remontée (le ping de `goodhome.identify_device` ne fait que biper)
 
 ## 📝 Logs
 

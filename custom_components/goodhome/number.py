@@ -1,13 +1,11 @@
 """Support for GoodHome Number entities."""
 import logging
-import asyncio
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import async_add_new_devices, build_device_info
+from .entity import async_add_new_devices, async_wait_for_confirmation, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -175,22 +173,16 @@ class GoodHomeTemperatureNumber(CoordinatorEntity, NumberEntity):
             )
             
             if success:
-                # Polling pour confirmer le changement
-                for attempt in range(POLLING_MAX_ATTEMPTS):
-                    await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_refresh()
-                    
+                def check_value():
                     device = self._get_device()
-                    if device and device.get("state"):
-                        current_value = device["state"].get(self._parameter_name)
-                        if current_value == value:
-                            _LOGGER.info("Temperature %s confirmed: %s°C", self._parameter_name, value)
-                            self._optimistic_value = None
-                            self.async_write_ha_state()
-                            return
-                
-                # Si après 40s pas de confirmation, on garde l'état optimiste
-                _LOGGER.warning("Temperature %s not confirmed after %ss, keeping optimistic state", self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
+                    return bool(device and device.get("state") and device["state"].get(self._parameter_name) == value)
+
+                # Attendre que le radiateur applique la commande, puis afficher la valeur réelle
+                await async_wait_for_confirmation(
+                    self.coordinator, check_value, f"{self._device_name} {self._parameter_name} {value}°C"
+                )
+                self._optimistic_value = None
+                self.async_write_ha_state()
             else:
                 # Échec de l'API, annuler l'état optimiste
                 self._optimistic_value = None

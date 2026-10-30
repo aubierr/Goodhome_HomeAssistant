@@ -42,7 +42,7 @@ Les valeurs 6, 7, 11 et 13 à 29 n'apparaissent dans aucune source. Une valeur i
 
 **Manuel (1, 2, 3, 8, 70).** Le radiateur garde la même consigne jusqu'au prochain changement. Le 3 (hors-gel) correspond à l'arrêt : c'est ce qu'envoie `climate.turn_off`. Le 8 est envoyé automatiquement dès qu'on change la température du `climate` : l'API reçoit `overrideTemp` + `targetMode: 8`.
 
-**Provisoire (0, 4).** Mode temporaire, abandonné à la remise sous tension. Le 4 est la version provisoire de l'override (8).
+**Provisoire (0, 4).** Mode temporaire, abandonné à la remise sous tension. Le 4 est la version provisoire de l'override (8). Il a été observé via l'API cloud sur un radiateur réel (`targetMode` 4, `targetTemp` 7).
 
 **Forçage (9, 10).** Le planning automatique reste actif ; la consigne forcée ne dure que jusqu'au prochain créneau. C'est ce qu'envoient les presets `comfort` et `eco` du `climate`.
 
@@ -123,4 +123,3 @@ En lecture, ESPHome classe 2 (et 10, 61) en `eco`, et 12 en `sleep`. Il affiche 
 
 - **Mode 70** : absent de la référence ESPHome ; sa consigne et sa fin restent à vérifier sur un radiateur réel.
 - **Mode 30** : la référence ne le décrit pas. Le comportement documenté vient de l'observation, et on ignore si l'API l'accepte en écriture (d'où le refus côté select).
-- **Mode 4** : documenté par ESPHome mais jamais observé via l'API cloud.

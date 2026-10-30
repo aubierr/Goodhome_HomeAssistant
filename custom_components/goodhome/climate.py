@@ -17,8 +17,8 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL, DEBOUNCE_DELAY
-from .entity import async_add_new_devices, build_device_info
+from .const import DEBOUNCE_DELAY
+from .entity import async_add_new_devices, async_wait_for_confirmation, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,28 +103,8 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
         return None
     
     async def _wait_for_confirmation(self, check_function: Callable[[], bool], description: str) -> bool:
-        """
-        Attendre la confirmation d'un changement avec polling.
-        
-        Args:
-            check_function: Fonction qui retourne True si le changement est confirmé
-            description: Description du changement pour les logs
-            
-        Returns:
-            True si confirmé, False si timeout
-        """
-        for attempt in range(POLLING_MAX_ATTEMPTS):
-            await asyncio.sleep(POLLING_INTERVAL)
-            await self.coordinator.async_refresh()
-            
-            if check_function():
-                _LOGGER.debug("%s confirmed after %s attempts", description, attempt + 1)
-                return True
-            
-            _LOGGER.debug("Waiting for %s confirmation... attempt %s/%s", description, attempt + 1, POLLING_MAX_ATTEMPTS)
-        
-        _LOGGER.warning("%s confirmation timeout after %s attempts, assuming success", description, POLLING_MAX_ATTEMPTS)
-        return False
+        """Attendre que le radiateur confirme un changement."""
+        return await async_wait_for_confirmation(self.coordinator, check_function, description)
     
     @property
     def current_temperature(self):
@@ -297,7 +277,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
                     self._api.set_override_temperature, self._device_id, temp_to_set
                 )
                 
-                # Fonction de vérification pour le polling
+                # Fonction de vérification de la confirmation
                 def check_temperature():
                     device = self._get_device()
                     if device and device.get("state"):
@@ -307,7 +287,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
                             return True
                     return False
                 
-                # Attendre la confirmation avec polling
+                # Attendre la confirmation du radiateur
                 await self._wait_for_confirmation(check_temperature, f"Temperature {temp_to_set}°C")
                 
                 # Nettoyer l'état en attente
@@ -337,14 +317,14 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             self._api.set_mode, self._device_id, mode
         )
         
-        # Fonction de vérification pour le polling
+        # Fonction de vérification de la confirmation
         def check_hvac_mode():
             device = self._get_device()
             if device and device.get("state"):
                 return device["state"].get("targetMode") == mode
             return False
         
-        # Attendre la confirmation avec polling
+        # Attendre la confirmation du radiateur
         await self._wait_for_confirmation(check_hvac_mode, f"HVAC mode {hvac_mode}")
         
         # Nettoyer l'état en attente
@@ -373,14 +353,14 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             self._api.set_mode, self._device_id, mode
         )
         
-        # Fonction de vérification pour le polling
+        # Fonction de vérification de la confirmation
         def check_preset_mode():
             device = self._get_device()
             if device and device.get("state"):
                 return device["state"].get("targetMode") == mode
             return False
         
-        # Attendre la confirmation avec polling
+        # Attendre la confirmation du radiateur
         await self._wait_for_confirmation(check_preset_mode, f"Preset mode {preset_mode}")
         
         # Nettoyer l'état en attente

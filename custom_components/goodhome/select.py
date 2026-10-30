@@ -1,13 +1,11 @@
 """Support for GoodHome Select entities."""
 import logging
-import asyncio
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import DOMAIN, async_add_new_devices, build_device_info
+from .entity import DOMAIN, async_add_new_devices, async_wait_for_confirmation, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -160,24 +158,12 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
         )
         
         if success:
-            # Attendre que le thermostat traite la commande (jusqu'à 40 secondes)
-            for attempt in range(POLLING_MAX_ATTEMPTS):
-                await asyncio.sleep(POLLING_INTERVAL)
-                await self.coordinator.async_refresh()
-                
-                # Vérifier si l'état de l'API correspond à notre commande
+            def check_mode():
                 device = self._get_device()
-                if device and device.get("state"):
-                    api_value = device["state"].get("targetMode")
-                    if api_value == mode_value:
-                        # État confirmé par l'API
-                        _LOGGER.info("Target mode %s confirmed after %ss", option, (attempt+1)*POLLING_INTERVAL)
-                        self._optimistic_state = None
-                        self.async_write_ha_state()
-                        return
-            
-            # Après le timeout, abandonner l'état optimiste même sans confirmation
-            _LOGGER.warning("Target mode %s not confirmed after %ss, assuming success", option, POLLING_MAX_ATTEMPTS*POLLING_INTERVAL)
+                return bool(device and device.get("state") and device["state"].get("targetMode") == mode_value)
+
+            # Attendre que le radiateur applique la commande, puis abandonner l'état optimiste
+            await async_wait_for_confirmation(self.coordinator, check_mode, f"Target mode {option}")
             self._optimistic_state = None
             self.async_write_ha_state()
         else:

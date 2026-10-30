@@ -1,13 +1,11 @@
 """GoodHome Switch Platform."""
 import logging
-import asyncio
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import async_add_new_devices, build_device_info
+from .entity import async_add_new_devices, async_wait_for_confirmation, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,6 +180,14 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
                 return str(value) == "1" or value == 1 or str(value).lower() == "true"
         return False
     
+    def _is_confirmed(self, expected):
+        """Vrai si l'API renvoie la valeur attendue (booléen ou 0/1)."""
+        device = self._get_device()
+        if not device or not device.get("state"):
+            return False
+        api_value = device["state"].get(self._parameter_name)
+        return api_value is expected or api_value == int(expected)
+    
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
         try:
@@ -198,25 +204,10 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
             )
             
             if success:
-                # Attendre que le thermostat traite la commande (jusqu'à 40 secondes)
-                # Faire plusieurs tentatives pour confirmer le changement
-                for attempt in range(POLLING_MAX_ATTEMPTS):
-                    await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_refresh()
-                    
-                    # Vérifier si l'état de l'API correspond à notre commande
-                    device = self._get_device()
-                    if device and device.get("state"):
-                        api_value = device["state"].get(self._parameter_name)
-                        if api_value is True or api_value == 1:
-                            # État confirmé par l'API, on peut abandonner l'état optimiste
-                            _LOGGER.info("%s %s turned on confirmed after %ss", self._device_name, self._parameter_name, (attempt+1)*POLLING_INTERVAL)
-                            self._optimistic_state = None
-                            self.async_write_ha_state()
-                            return
-                
-                # Après le timeout, abandonner l'état optimiste même sans confirmation
-                _LOGGER.warning("%s %s turn on not confirmed after %ss, assuming success", self._device_name, self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
+                # Attendre que le radiateur applique la commande, puis abandonner l'état optimiste
+                await async_wait_for_confirmation(
+                    self.coordinator, lambda: self._is_confirmed(True), f"{self._device_name} {self._parameter_name} turn on"
+                )
                 self._optimistic_state = None
                 self.async_write_ha_state()
             else:
@@ -247,25 +238,10 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
             )
             
             if success:
-                # Attendre que le thermostat traite la commande (jusqu'à 40 secondes)
-                # Faire plusieurs tentatives pour confirmer le changement
-                for attempt in range(POLLING_MAX_ATTEMPTS):
-                    await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_refresh()
-                    
-                    # Vérifier si l'état de l'API correspond à notre commande
-                    device = self._get_device()
-                    if device and device.get("state"):
-                        api_value = device["state"].get(self._parameter_name)
-                        if api_value is False or api_value == 0:
-                            # État confirmé par l'API, on peut abandonner l'état optimiste
-                            _LOGGER.info("%s %s turned off confirmed after %ss", self._device_name, self._parameter_name, (attempt+1)*POLLING_INTERVAL)
-                            self._optimistic_state = None
-                            self.async_write_ha_state()
-                            return
-                
-                # Après le timeout, abandonner l'état optimiste même sans confirmation
-                _LOGGER.warning("%s %s turn off not confirmed after %ss, assuming success", self._device_name, self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
+                # Attendre que le radiateur applique la commande, puis abandonner l'état optimiste
+                await async_wait_for_confirmation(
+                    self.coordinator, lambda: self._is_confirmed(False), f"{self._device_name} {self._parameter_name} turn off"
+                )
                 self._optimistic_state = None
                 self.async_write_ha_state()
             else:

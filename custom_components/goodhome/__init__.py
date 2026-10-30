@@ -6,14 +6,16 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers import discovery
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import UPDATE_INTERVAL
-from .goodhome_api import GoodHomeAPI, GoodHomeAuthError, GoodHomeConnectionError, GoodHomeError
+from .goodhome_api import BASE_URL, GoodHomeAPI, GoodHomeAuthError, GoodHomeConnectionError, GoodHomeError
+from .push import GoodHomePushClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,6 +144,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
 
     entry.runtime_data = GoodHomeData(coordinator=coordinator, api=api)
 
+    # Écoute temps réel : la relecture REST reste active en secours
+    push_client = GoodHomePushClient(
+        async_get_clientsession(hass),
+        BASE_URL,
+        lambda: (api.user_id, api.token),
+        lambda name, payload: _async_apply_push_event(coordinator, name, payload),
+        refresh_token=lambda: hass.async_add_executor_job(api.refresh_access_token),
+    )
+    entry.async_create_background_task(hass, push_client.run(), "goodhome_push")
+
     if not hass.services.has_service(DOMAIN, "identify_device"):
         async def async_identify_device(call):
             """Handle the identify device service call."""
@@ -164,6 +176,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+@callback
+def _async_apply_push_event(coordinator, name, payload):
+    """Appliquer un événement Socket.io aux données du coordinator.
+
+    « setState » porte les réglages modifiés, « report » les mesures du radiateur
+    (température, humidité...), avec seulement les champs qui ont changé.
+    """
+    if name not in ("setState", "report") or not isinstance(payload, dict):
+        _LOGGER.debug("GoodHome push: ignored event %s", name)
+        return
+    device_id = payload.get("objectId")
+    changes = payload.get("data")
+    if payload.get("objectType") != "device" or not isinstance(changes, dict):
+        return
+
+    devices = coordinator.data or []
+    if not any(device["id"] == device_id for device in devices):
+        return
+    # Nouvelles listes plutôt qu'une modification sur place : le cache HTTP de l'API
+    # partage ces objets
+    coordinator.data = [
+        {**device, "state": {**(device.get("state") or {}), **changes}} if device["id"] == device_id else device
+        for device in devices
+    ]
+    # Sans async_set_updated_data, qui repousserait la relecture REST de secours
+    coordinator.async_update_listeners()
+    _LOGGER.debug("GoodHome push: %s %s %s", name, device_id, changes)
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: GoodHomeConfigEntry, device_entry: DeviceEntry

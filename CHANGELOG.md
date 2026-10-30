@@ -16,6 +16,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🐛 Les binary sensors utilisaient des clés de traduction invalides (« Connectivity », « Self Learning Improve »)
 - 🐛 Le cache HTTP n'envoie plus d'en-tête `If-None-Match` sans avoir les données correspondantes (évite une erreur sur une réponse 304 après renouvellement du token)
 - 🐛 Les logs des switches et des numbers affichaient `None` au lieu du nom de l'entité, et un délai de 30 s au lieu de 40 s
+- 🐛 Après une commande, la valeur affichée revenait à l'ancienne au bout de 40 s, alors que le radiateur met de 45 s à 2 min à l'appliquer. L'attente de confirmation passe à 3 min et se termine dès que le radiateur confirme (Socket.io ou relecture), sans relire l'API toutes les 5 s
 - 🐛 Le thermostat s'affichait arrêté en mode 0 (par défaut), alors que le radiateur chauffe ; seul le mode 3 (hors-gel) vaut OFF
 - 🐛 Les modes éco 2 et 30 apparaissaient en preset `manual` au lieu de `eco`
 - 🐛 Les modes inconnus s'affichaient « Par défaut » dans le select ; ils passent en état inconnu
@@ -29,6 +30,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🏷️ Modèle, version firmware et version matérielle affichés sur l'appareil
 - ➕ Les radiateurs ajoutés dans l'app GoodHome apparaissent sans redémarrer Home Assistant
 - 🗑️ Un radiateur retiré du compte GoodHome peut être supprimé depuis l'interface
+- ⚡ Mises à jour en temps réel : l'intégration écoute le Socket.io du cloud GoodHome (événements `setState` et `report`) au lieu d'attendre la relecture suivante. La relecture de l'API toutes les 30 s reste active en secours
 - 🎯 Mode 4 (override provisoire) dans le select
 - 💤 Preset `sleep` sur le thermostat pour l'absence courte (mode 12), distinct de `away` (absence longue)
 - 📖 Documentation de tous les modes : [docs/MODES.md](docs/MODES.md)
@@ -47,7 +49,6 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🧹 Données d'exécution stockées dans `entry.runtime_data` au lieu de `hass.data`
 - 🧹 Logs au format paresseux `%s` au lieu des f-strings
 - ⏱️ Relecture de l'API toutes les 30 s au lieu de 60 s
-- ⏱️ Après une commande, la confirmation relit vraiment l'API toutes les 5 s (elle était limitée à une relecture toutes les 10 s par l'anti-rafale du coordinator)
 - 🚀 La lecture des radiateurs ne fait plus de poignée de main Socket.io : 1 requête HTTP par cycle au lieu de 3 (testé sur l'API réelle)
 
 ## [1.0.0] - 2025-11-11

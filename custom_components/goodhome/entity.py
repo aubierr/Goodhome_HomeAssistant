@@ -1,6 +1,13 @@
 """Helpers partagés par les entités GoodHome."""
+import asyncio
+import logging
+
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
+
+from .const import CONFIRMATION_TIMEOUT
+
+_LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "goodhome"
 
@@ -28,6 +35,35 @@ def async_add_new_devices(entry, coordinator, build_entities, async_add_entities
 
     _add_new_devices()
     entry.async_on_unload(coordinator.async_add_listener(_add_new_devices))
+
+
+async def async_wait_for_confirmation(coordinator, check, description):
+    """Attendre que les données du coordinator confirment une commande.
+
+    La confirmation arrive par l'écoute Socket.io (événement setState) ou, en
+    secours, par la relecture REST. Renvoie False après CONFIRMATION_TIMEOUT.
+    """
+    if check():
+        return True
+
+    confirmed = asyncio.Event()
+
+    @callback
+    def _check_update():
+        if check():
+            confirmed.set()
+
+    unsubscribe = coordinator.async_add_listener(_check_update)
+    try:
+        async with asyncio.timeout(CONFIRMATION_TIMEOUT):
+            await confirmed.wait()
+        _LOGGER.debug("%s confirmed", description)
+        return True
+    except TimeoutError:
+        _LOGGER.warning("%s not confirmed after %ss", description, CONFIRMATION_TIMEOUT)
+        return False
+    finally:
+        unsubscribe()
 
 
 def build_device_info(coordinator, device_id, name):
