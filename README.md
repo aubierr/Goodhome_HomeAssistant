@@ -42,7 +42,7 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 
 ### Via HACS (recommandé)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=K0n3k&repository=Goodhome_HomeAssistant&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=aubierr&repository=Goodhome_HomeAssistant&category=integration)
 
 ### Installation manuelle
 
@@ -277,6 +277,7 @@ Ce projet est sous licence MIT.
 
 ## 👏 Remerciements
 
+- [K0n3k/Goodhome_HomeAssistant](https://github.com/K0n3k/Goodhome_HomeAssistant), l'intégration d'origine dont cette version est issue
 - [ESPHome_GoodHome](https://github.com/Benichou34/ESPHome_GoodHome) pour la documentation de l'API
 - La communauté Home Assistant
 

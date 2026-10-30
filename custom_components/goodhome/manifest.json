@@ -5,13 +5,13 @@
     "climate.thermostats_heating"
   ],
   "codeowners": [
-    "@K0n3k"
+    "@aubierr"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/K0n3k/Goodhome_HomeAssistant",
+  "documentation": "https://github.com/aubierr/Goodhome_HomeAssistant",
   "integration_type": "hub",
   "iot_class": "cloud_push",
-  "issue_tracker": "https://github.com/K0n3k/Goodhome_HomeAssistant/issues",
+  "issue_tracker": "https://github.com/aubierr/Goodhome_HomeAssistant/issues",
   "requirements": [],
   "version": "2.1.0"
 }
