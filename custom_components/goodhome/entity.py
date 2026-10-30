@@ -95,13 +95,15 @@ class GoodHomeEntity(CoordinatorEntity[GoodHomeCoordinator]):
             hw_version=_as_str(state.get("HwVer")),
         )
 
-    async def async_send_state(self, parameters, display=None):
+    async def async_send_state(self, parameters, display=None, confirmed=None):
         """Envoyer des paramètres au radiateur.
 
         L'action se termine dès l'envoi (une erreur est remontée tout de suite) ;
         la confirmation, qui prend 45 s à 2 min, est attendue en tâche de fond.
         display : champs à afficher en plus pendant l'attente (ex. targetTemp, que
         le radiateur déduit de overrideTemp) ; seuls les paramètres sont vérifiés.
+        confirmed : vérification à la place de « valeurs identiques », appelée avec
+        le « state » du radiateur, quand celui-ci peut appliquer une autre valeur.
         """
         shown = {**parameters, **(display or {})}
         self._pending.update(shown)
@@ -117,12 +119,16 @@ class GoodHomeEntity(CoordinatorEntity[GoodHomeCoordinator]):
             ) from err
 
         self.coordinator.config_entry.async_create_background_task(
-            self.hass, self._async_wait_confirmation(parameters, shown), f"goodhome confirm {self.entity_id}"
+            self.hass,
+            self._async_wait_confirmation(parameters, shown, confirmed),
+            f"goodhome confirm {self.entity_id}",
         )
 
-    async def _async_wait_confirmation(self, parameters, shown):
+    async def _async_wait_confirmation(self, parameters, shown, confirmed=None):
         def _confirmed():
             state = (self.device or {}).get("state") or {}
+            if confirmed is not None:
+                return confirmed(state)
             return all(_same_value(state.get(key), value) for key, value in parameters.items())
 
         try:

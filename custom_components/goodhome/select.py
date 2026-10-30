@@ -30,6 +30,16 @@ TARGET_MODES_REVERSE = {v: k for k, v in TARGET_MODES.items()}
 # Modes affichés mais gérés par le radiateur lui-même, non sélectionnables
 READ_ONLY_MODES = {"eco_auto_absence"}
 
+# Envoyer 60 ou 61 passe le radiateur en automatique : c'est son planning qui choisit
+# ensuite confort (60) ou éco (61), ou 30 s'il ne détecte personne (observé sur l'API réelle)
+AUTO_OPTIONS = {"auto_comfort", "auto_eco"}
+AUTO_MODES = {30, 60, 61}
+
+
+def _is_auto_mode(state):
+    """Le radiateur est passé en automatique, quel que soit le mode choisi par son planning."""
+    return state.get("targetMode") in AUTO_MODES
+
 # Options présentées à l'utilisateur (dans l'ordre logique d'utilisation)
 TARGET_MODE_OPTIONS = [
     "default",
@@ -85,7 +95,10 @@ class GoodHomeTargetModeSelect(GoodHomeEntity, SelectEntity):
                 translation_key="read_only_mode",
                 translation_placeholders={"option": option},
             )
-        await self.async_send_state({"targetMode": TARGET_MODES[option]})
+        await self.async_send_state(
+            {"targetMode": TARGET_MODES[option]},
+            confirmed=_is_auto_mode if option in AUTO_OPTIONS else None,
+        )
 
     @property
     def extra_state_attributes(self):

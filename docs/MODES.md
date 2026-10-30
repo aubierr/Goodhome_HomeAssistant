@@ -51,6 +51,7 @@ Les valeurs 6, 7, 11 et 13 à 29 n'apparaissent dans aucune source. Une valeur i
 - 12, absence courte : éco pendant `overrideTime`. Envoyé par le preset `sleep`.
 
 **Automatique (30, 60, 61).** Le radiateur choisit lui-même la consigne à partir de son planning ou de l'auto-apprentissage :
+- envoyer 60 ou 61 passe le radiateur en automatique, mais c'est son planning qui choisit ensuite : « Auto Éco » demandé en période de confort donne 60 (observé sur l'API réelle). L'intégration considère donc ces deux choix confirmés dès que le radiateur est en 30, 60 ou 61 ;
 - 60 / 61 : période de présence (confort) ou d'absence (éco) du planning ;
 - 30 : passage en éco quand le détecteur ne voit personne pendant environ 20 minutes, retour dès qu'une présence est détectée. Le radiateur le gère seul : le select l'affiche mais refuse de le sélectionner. La référence ESPHome laisse ce mode sans description ; ce comportement vient de l'observation.
 

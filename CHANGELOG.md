@@ -17,6 +17,7 @@ Les identifiants des entités ne changent pas : historiques, tableaux de bord et
 - 📊 Le capteur Cycle de chauffe n'a plus la classe « facteur de puissance », qui ne correspondait pas à la mesure
 
 ### Corrigé
+- 🕒 Choisir « Auto Confort » ou « Auto Éco » n'affiche plus d'avertissement de non-confirmation : le radiateur passe en automatique et son planning choisit lui-même confort ou éco
 - 🖼️ L'icône de l'intégration s'affiche de nouveau (« Icon not available ») : depuis 2026, Home Assistant lit les images d'une intégration personnalisée dans son dossier `brand/`
 
 ### Ajouté

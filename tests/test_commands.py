@@ -123,3 +123,25 @@ async def test_identify_button_and_service(hass, setup_integration, mock_api):
 
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(DOMAIN, "identify_device", {"device_id": "unknown"}, blocking=True)
+
+
+async def test_auto_mode_is_confirmed_by_schedule_choice(hass, setup_integration, mock_api, caplog):
+    """Envoyer « Auto Éco » en période de confort : le radiateur passe en Auto Confort."""
+    select = entity_id(hass, "select", f"goodhome_target_mode_{D}")
+    push(setup_integration, targetMode=8)
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": select, "option": "auto_eco"}, blocking=True
+    )
+    assert sent_parameters(mock_api) == [{"targetMode": 61}]
+    assert hass.states.get(select).state == "auto_eco"
+
+    # Le planning choisit le confort : la commande est confirmée, sans avertissement
+    push(setup_integration, targetMode=60)
+    await hass.async_block_till_done()
+    assert hass.states.get(select).state == "auto_comfort"
+
+    await advance(hass, CONFIRMATION_TIMEOUT + 1)
+    assert hass.states.get(select).state == "auto_comfort"
+    assert "not confirmed" not in caplog.text
