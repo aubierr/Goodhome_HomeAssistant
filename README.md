@@ -13,7 +13,7 @@ Intégration Home Assistant complète pour les radiateurs connectés **GoodHome*
 - ✅ **Sensor** - Température, humidité, puissance, consommation, jours d'apprentissage
 - ✅ **Binary Sensor** - Connectivité, problèmes, auto-apprentissage
 - ✅ **Switch** - Détection fenêtre ouverte, présence, auto-apprentissage, mode manuel
-- ✅ **Select** - Sélection des modes targetMode (13 modes disponibles)
+- ✅ **Select** - Sélection des modes targetMode (14 modes)
 - ✅ **Number** - Réglage des températures confort, éco et hors-gel
 
 ### Caractéristiques principales
@@ -78,7 +78,7 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
   - Température cible
   - Modes HVAC (Heat, Off), avec les actions `climate.turn_on` / `climate.turn_off`
   - Action en cours (`hvac_action`) : `heating` quand le radiateur chauffe (duty cycle > 0), `idle` sinon
-  - Presets (Confort, Éco, Manuel, Absence)
+  - Presets (Confort, Éco, Manuel, Absence, Absence courte `sleep`)
   - Attributs étendus :
     - `eco_reason` : `manual` / `absence` / `schedule` / `null`
     - `self_learning_days` : Progression de l'apprentissage (0-14)
@@ -112,9 +112,9 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 - `select.xxx_target_mode` - Sélection du mode de fonctionnement
   - Par défaut (provisoire)
   - Manuel Confort / Éco / Hors-gel / Manuel
-  - Override
+  - Override / Override provisoire
   - Forcé Confort / Éco
-  - **Éco auto (absence)** - Nouveau mode 30
+  - **Éco auto (absence)** - Mode 30, en lecture seule
   - Auto Confort / Éco
   - Absence courte / longue
 
@@ -140,7 +140,7 @@ data:
 
 ## 🎯 Modes targetMode
 
-L'entité `select.xxx_target_mode` permet de contrôler finement le comportement du radiateur avec les 13 modes disponibles :
+L'entité `select.xxx_target_mode` permet de contrôler finement le comportement du radiateur avec 14 modes :
 
 | Mode | Valeur | Description |
 |------|--------|-------------|
@@ -148,6 +148,7 @@ L'entité `select.xxx_target_mode` permet de contrôler finement le comportement
 | Manuel Confort | 1 | Manuel à température confort |
 | Manuel Éco | 2 | Manuel à température éco |
 | Manuel Hors-gel | 3 | Manuel anti-gel (OFF) |
+| Override provisoire | 4 | Provisoire, température override |
 | Absence longue | 5 | Absence longue durée (holidayTimeout) |
 | Override | 8 | Manuel avec température override |
 | Forcé Confort | 9 | Forcé confort avec retour auto |
@@ -158,6 +159,8 @@ L'entité `select.xxx_target_mode` permet de contrôler finement le comportement
 | Auto Éco | 61 | Mode auto période absence |
 | Manuel | 70 | Mode manuel (mise à jour récente) |
 
+Détail de chaque mode, correspondance avec l'entité `climate` et écarts connus : [docs/MODES.md](docs/MODES.md).
+
 ### 🆕 Mode 30 - Détection d'absence automatique
 
 Le **mode 30** est un mode spécial qui se déclenche automatiquement :
@@ -166,7 +169,7 @@ Le **mode 30** est un mode spécial qui se déclenche automatiquement :
 - ↩️ Retour automatique au mode normal dès détection de présence
 - 📊 Visible dans l'attribut `eco_reason` du climate : `"absence"`
 
-**Note** : Ce mode n'est pas sélectionnable manuellement, il est géré par le radiateur lui-même.
+**Note** : Ce mode est géré par le radiateur lui-même : le select l'affiche mais refuse de le sélectionner.
 
 ## 🔌 Compatibilité API
 

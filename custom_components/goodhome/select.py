@@ -3,48 +3,55 @@ import logging
 import asyncio
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import POLLING_MAX_ATTEMPTS, POLLING_INTERVAL
-from .entity import async_add_new_devices, build_device_info
+from .entity import DOMAIN, async_add_new_devices, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
-# Mapping des modes targetMode selon ESPHome_GoodHome avec traductions
+# Mapping des modes targetMode selon ESPHome_GoodHome (clé de traduction -> valeur API)
+# Voir docs/MODES.md pour le détail de chaque mode
 TARGET_MODES = {
-    "Par défaut": 0,           # Provisoire, retour au mode par défaut
-    "Manuel Confort": 1,        # Manuel, température confort
-    "Manuel Éco": 2,            # Manuel, température éco
-    "Manuel Hors-gel": 3,       # Manuel, température anti-gel
-    "Absence longue": 5,        # Absence de longue durée (holidayTimeout)
-    "Override": 8,              # Manuel override
-    "Forcé Confort": 9,         # Forcé confort (retour auto)
-    "Forcé Éco": 10,            # Forcé éco (retour auto)
-    "Absence courte": 12,       # Absence de courte durée (overrideTime)
-    "Éco auto (absence)": 30,   # Éco automatique après détection d'absence (20+ min)
-    "Auto Confort": 60,         # Mode auto, période de présence
-    "Auto Éco": 61,             # Mode auto, période d'absence
-    "Manuel": 70,               # Manuel (mise à jour récente)
+    "default": 0,               # Provisoire, retour au mode par défaut
+    "manual_comfort": 1,        # Manuel, température confort
+    "manual_eco": 2,            # Manuel, température éco
+    "manual_frost": 3,          # Manuel, température anti-gel
+    "temporary_override": 4,    # Provisoire, température override
+    "long_absence": 5,          # Absence de longue durée (holidayTimeout)
+    "override": 8,              # Manuel override
+    "forced_comfort": 9,        # Forcé confort (retour auto)
+    "forced_eco": 10,           # Forcé éco (retour auto)
+    "short_absence": 12,        # Absence de courte durée (overrideTime)
+    "eco_auto_absence": 30,     # Éco automatique après détection d'absence (20+ min)
+    "auto_comfort": 60,         # Mode auto, période de présence
+    "auto_eco": 61,             # Mode auto, période d'absence
+    "manual": 70,               # Manuel (mise à jour récente)
 }
 
 # Mapping inverse pour la lecture
 TARGET_MODES_REVERSE = {v: k for k, v in TARGET_MODES.items()}
 
+# Modes affichés mais gérés par le radiateur lui-même, non sélectionnables
+READ_ONLY_MODES = {"eco_auto_absence"}
+
 # Options présentées à l'utilisateur (dans l'ordre logique d'utilisation)
 TARGET_MODE_OPTIONS = [
-    "Par défaut",
-    "Manuel Confort",
-    "Manuel Éco", 
-    "Manuel Hors-gel",
-    "Manuel",
-    "Override",
-    "Forcé Confort",
-    "Forcé Éco",
-    "Éco auto (absence)",
-    "Auto Confort",
-    "Auto Éco",
-    "Absence courte",
-    "Absence longue",
+    "default",
+    "manual_comfort",
+    "manual_eco",
+    "manual_frost",
+    "manual",
+    "override",
+    "temporary_override",
+    "forced_comfort",
+    "forced_eco",
+    "eco_auto_absence",
+    "auto_comfort",
+    "auto_eco",
+    "short_absence",
+    "long_absence",
 ]
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -118,15 +125,23 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
         if device and device.get("state"):
             target_mode = device["state"].get("targetMode")
             if target_mode is not None:
-                option = TARGET_MODES_REVERSE.get(target_mode, "Par défaut")
-                return option
-        return "Par défaut"
+                # Valeur inconnue : état « inconnu » plutôt qu'un mode erroné
+                # (la valeur brute reste visible dans l'attribut target_mode_value)
+                return TARGET_MODES_REVERSE.get(target_mode)
+        return None
     
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         if option not in TARGET_MODES:
             _LOGGER.error("Unknown target mode: %s", option)
             return
+
+        if option in READ_ONLY_MODES:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="read_only_mode",
+                translation_placeholders={"option": option},
+            )
         
         mode_value = TARGET_MODES[option]
         

@@ -96,6 +96,7 @@
           "manual_eco": "Manuel Éco",
           "manual_frost": "Manuel Hors-gel",
           "long_absence": "Absence longue",
+          "temporary_override": "Override provisoire",
           "override": "Manuel Override",
           "forced_comfort": "Forcé Confort",
           "forced_eco": "Forcé Éco",
@@ -129,6 +130,11 @@
           "description": "Identifiant GoodHome de l'appareil (attribut device_id du capteur Informations appareil)."
         }
       }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "Le mode {option} est géré par le radiateur lui-même et ne peut pas être sélectionné"
     }
   }
 }

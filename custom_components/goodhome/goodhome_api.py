@@ -361,7 +361,7 @@ class GoodHomeAPI:
             data = {
                 "parameters": {
                     "overrideTemp": temperature,
-                    "targetMode": 8  # Mode confort par défaut lors du changement de température
+                    "targetMode": 8  # Override manuel : le radiateur garde overrideTemp
                 }
             }
             

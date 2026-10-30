@@ -16,6 +16,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🐛 Les binary sensors utilisaient des clés de traduction invalides (« Connectivity », « Self Learning Improve »)
 - 🐛 Le cache HTTP n'envoie plus d'en-tête `If-None-Match` sans avoir les données correspondantes (évite une erreur sur une réponse 304 après renouvellement du token)
 - 🐛 Les logs des switches et des numbers affichaient `None` au lieu du nom de l'entité, et un délai de 30 s au lieu de 40 s
+- 🐛 Le thermostat s'affichait arrêté en mode 0 (par défaut), alors que le radiateur chauffe ; seul le mode 3 (hors-gel) vaut OFF
+- 🐛 Les modes éco 2 et 30 apparaissaient en preset `manual` au lieu de `eco`
+- 🐛 Les modes inconnus s'affichaient « Par défaut » dans le select ; ils passent en état inconnu
+- 🐛 Les options du select n'étaient pas traduites (libellés français codés en dur)
 
 ### Ajouté
 - 🔐 Réauthentification depuis l'interface quand le mot de passe est refusé
@@ -25,10 +29,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🏷️ Modèle, version firmware et version matérielle affichés sur l'appareil
 - ➕ Les radiateurs ajoutés dans l'app GoodHome apparaissent sans redémarrer Home Assistant
 - 🗑️ Un radiateur retiré du compte GoodHome peut être supprimé depuis l'interface
+- 🎯 Mode 4 (override provisoire) dans le select
+- 💤 Preset `sleep` sur le thermostat pour l'absence courte (mode 12), distinct de `away` (absence longue)
+- 📖 Documentation de tous les modes : [docs/MODES.md](docs/MODES.md)
 - 🛎️ Service `goodhome.identify_device` disponible aussi avec la configuration par l'interface, avec sa description (`services.yaml`)
 
 ### Modifié
 - ⬆️ Home Assistant **2024.11** minimum
+- ⚠️ Les états de `select.xxx_target_mode` deviennent des clés (`manual_comfort`, `auto_eco`…) au lieu des libellés français : les automatisations qui testent ou choisissent une option sont à mettre à jour
+- 🔒 Le mode 30 (éco auto sur absence) n'est plus sélectionnable : le radiateur le gère seul
 - 📦 Suppression de la dépendance `requests` du manifest (fournie par Home Assistant)
 - 🧹 `hacs.json` : suppression de la clé `domains` dépréciée, ajout de la version minimale de Home Assistant
 - 🧹 Import de `EntityCategory` depuis `homeassistant.const`

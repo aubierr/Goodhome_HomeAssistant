@@ -11,6 +11,7 @@ from homeassistant.components.climate import (
     PRESET_AWAY,
     PRESET_COMFORT,
     PRESET_ECO,
+    PRESET_SLEEP,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -61,7 +62,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
         | ClimateEntityFeature.TURN_OFF
     )
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
-    _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_MANUAL, PRESET_AWAY]
+    _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_MANUAL, PRESET_AWAY, PRESET_SLEEP]
     _attr_min_temp = 7
     _attr_max_temp = 30
     _attr_target_temperature_step = 0.5
@@ -165,9 +166,8 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
         device = self._get_device()
         if device and device.get("state"):
             mode = device["state"].get("targetMode", 1)
-            # Mode 3 = anti-gel manuel = OFF
-            # Mode 0 = default (provisoire) = considéré comme OFF aussi
-            if mode in [0, 3]:
+            # Mode 3 = anti-gel manuel = OFF (seul mode d'arrêt, comme ESPHome_GoodHome)
+            if mode == 3:
                 return HVACMode.OFF
             return HVACMode.HEAT
         return HVACMode.HEAT
@@ -200,12 +200,13 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             # Mapping inverse selon ESPHome_GoodHome
             if mode in [9, 60]:  # Forcé confort ou Auto confort
                 return PRESET_COMFORT
-            elif mode in [10, 61]:  # Forcé éco ou Auto éco
+            elif mode in [2, 10, 30, 61]:  # Manuel éco, forcé éco, éco sur absence ou auto éco
                 return PRESET_ECO
-            elif mode in [1, 2, 3, 8, 70]:  # Modes manuels
-                return PRESET_MANUAL
-            elif mode in [5, 12]:  # Absence (longue ou courte)
+            elif mode == 5:  # Absence longue
                 return PRESET_AWAY
+            elif mode == 12:  # Absence courte
+                return PRESET_SLEEP
+            # Modes manuels et provisoires (0, 1, 3, 4, 8, 70) ou inconnus
         return PRESET_MANUAL
     
     @property
@@ -359,6 +360,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             PRESET_ECO: 10,      # Forcé éco (retour auto)
             PRESET_MANUAL: 1,    # Manuel confort
             PRESET_AWAY: 5,      # Absence longue durée
+            PRESET_SLEEP: 12,    # Absence courte durée
         }
         mode = mode_map.get(preset_mode, 1)
         

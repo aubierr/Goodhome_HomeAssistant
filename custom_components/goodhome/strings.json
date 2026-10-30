@@ -89,10 +89,12 @@
           "manual_eco": "Manual Eco",
           "manual_frost": "Manual Frost Protection",
           "long_absence": "Long Absence",
+          "temporary_override": "Temporary Override",
           "override": "Manual Override",
           "forced_comfort": "Forced Comfort",
           "forced_eco": "Forced Eco",
           "short_absence": "Short Absence",
+          "eco_auto_absence": "Eco Auto (no presence)",
           "auto_comfort": "Auto Comfort",
           "auto_eco": "Auto Eco",
           "manual": "Manual"
@@ -121,6 +123,11 @@
           "description": "GoodHome device identifier (device_id attribute of the Device information sensor)."
         }
       }
+    }
+  },
+  "exceptions": {
+    "read_only_mode": {
+      "message": "The {option} mode is managed by the radiator itself and cannot be selected"
     }
   }
 }
