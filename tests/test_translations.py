@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.icon import async_get_icons
 from homeassistant.helpers.translation import async_get_translations
 
 from custom_components.goodhome.select import TARGET_MODE_OPTIONS
@@ -13,6 +14,7 @@ from .conftest import DEVICE_ID, entity_id
 
 COMPONENT = Path(__file__).parent.parent / "custom_components" / "goodhome"
 STRINGS = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))
+ICONS = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))
 LANGUAGES = sorted(path.stem for path in (COMPONENT / "translations").glob("*.json"))
 
 
@@ -58,3 +60,17 @@ async def test_translations_are_loaded(hass, setup_integration):
     # Le thermostat utilise bien ces traductions
     climate = entity_id(hass, "climate", f"goodhome_climate_{DEVICE_ID}")
     assert er.async_get(hass).async_get(climate).translation_key == "radiator"
+
+
+def test_icons_match_translation_keys():
+    """Chaque icône correspond à une entité ou une action qui existe."""
+    for platform, icons in ICONS["entity"].items():
+        assert set(icons) <= set(STRINGS["entity"][platform]), platform
+    assert set(ICONS["services"]) == set(STRINGS["services"])
+
+
+async def test_icons_are_loaded(hass, setup_integration):
+    icons = await async_get_icons(hass, "entity", ["goodhome"])
+    assert icons["goodhome"]["switch"]["window"]["state"]["off"] == "mdi:window-closed-variant"
+    services = await async_get_icons(hass, "services", ["goodhome"])
+    assert services["goodhome"]["identify_device"]["service"] == "mdi:bell-ring"

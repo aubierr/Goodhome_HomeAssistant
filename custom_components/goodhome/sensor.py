@@ -37,6 +37,16 @@ class GoodHomeSensorDescription(SensorEntityDescription):
     attributes_fn: Callable[[dict, dict], dict] | None = None
 
 
+# Champs du « state » déjà exploités par une entité ; userHash identifie la maison et reste masqué
+USED_STATE_FIELDS = {
+    "HwVer", "antifTemp", "codeName", "comfTemp", "currentTemp", "dutyCycle", "ecoTemp",
+    "faultSystem", "fwVer", "humidity", "noprog", "occupancyStatus", "overrideTemp",
+    "overrideTime", "roomName", "selfLearning", "selfLearningCountDay", "selfLearningImprove",
+    "targetMode", "targetTemp", "window", "windowTimeOut",
+}
+HIDDEN_STATE_FIELDS = {"userHash"}
+
+
 def _device_info_attributes(device, state):
     return {
         "device_type": device.get("type"),
@@ -51,6 +61,12 @@ def _device_info_attributes(device, state):
         "self_learning_days": state.get("selfLearningCountDay"),
         "connected": device.get("connected", False),
         "device_id": device.get("id"),
+        # Champs envoyés par l'API mais exploités par aucune entité (nouveau firmware...) : visibles pour le débogage
+        "other_fields": {
+            key: value
+            for key, value in state.items()
+            if key not in USED_STATE_FIELDS and key not in HIDDEN_STATE_FIELDS
+        },
     }
 
 

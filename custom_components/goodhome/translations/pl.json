@@ -71,6 +71,12 @@
               "medium": "Umiarkowanie",
               "hot": "Ciepło"
             }
+          },
+          "target_mode_value": {
+            "name": "Surowy tryb (API)"
+          },
+          "pending_confirmation": {
+            "name": "Oczekuje na potwierdzenie"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Termostat wydaje sygnał dźwiękowy, aby można go było zlokalizować.",
       "fields": {
         "device_id": {
-          "name": "ID urządzenia",
-          "description": "Identyfikator GoodHome urządzenia (atrybut device_id czujnika Informacje o urządzeniu)."
+          "name": "Urządzenie",
+          "description": "Grzejnik do zlokalizowania. Nadal akceptowany jest identyfikator GoodHome (atrybut device_id czujnika Informacje o urządzeniu)."
         }
       }
     }

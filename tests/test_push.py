@@ -78,8 +78,14 @@ async def test_push_client_forwards_events(hass, aioclient_mock):
         events.append((name, payload["data"]))
         received.set()
 
-    task = asyncio.create_task(GoodHomePushClient(async_get_clientsession(hass), _client(), on_event).run())
+    push_client = GoodHomePushClient(async_get_clientsession(hass), _client(), on_event)
+    task = asyncio.create_task(push_client.run())
     await asyncio.wait_for(received.wait(), timeout=5)
+
+    # État de l'écoute pour les diagnostics
+    assert push_client.connected
+    assert push_client.connections == 1
+    assert push_client.last_event is not None
     task.cancel()
 
     assert events == [("report", {"currentTemp": 21.5})]
@@ -106,13 +112,15 @@ async def test_push_client_reconnects_after_unexpected_error(hass, aioclient_moc
     _socketio(aioclient_mock, _packets('0{"pingInterval":25000}'), HANDSHAKE, _packets(REPORT))
     received = asyncio.Event()
 
-    task = asyncio.create_task(
-        GoodHomePushClient(async_get_clientsession(hass), _client(), lambda *a: received.set()).run()
-    )
+    push_client = GoodHomePushClient(async_get_clientsession(hass), _client(), lambda *a: received.set())
+    task = asyncio.create_task(push_client.run())
     await asyncio.wait_for(received.wait(), timeout=5)
     task.cancel()
 
     assert "unexpected error" in caplog.text
+    # La première session n'a pas abouti ; sa cause reste visible dans les diagnostics
+    assert push_client.connections == 1
+    assert "KeyError" in push_client.last_error
 
 
 async def test_event_handler_error_keeps_session(hass, aioclient_mock, caplog):

@@ -71,6 +71,12 @@
               "medium": "Templado",
               "hot": "Caliente"
             }
+          },
+          "target_mode_value": {
+            "name": "Modo bruto (API)"
+          },
+          "pending_confirmation": {
+            "name": "Pendiente de confirmación"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Hace pitar el termostato para localizarlo.",
       "fields": {
         "device_id": {
-          "name": "ID del dispositivo",
-          "description": "Identificador GoodHome del dispositivo (atributo device_id del sensor Información del dispositivo)."
+          "name": "Dispositivo",
+          "description": "Radiador que se quiere localizar. También se acepta el identificador GoodHome (atributo device_id del sensor Información del dispositivo)."
         }
       }
     }

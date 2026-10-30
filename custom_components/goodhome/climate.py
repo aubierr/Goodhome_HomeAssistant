@@ -13,10 +13,11 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DEBOUNCE_DELAY
-from .entity import GoodHomeEntity, async_add_new_devices
+from .const import AUTO_MODES, DEBOUNCE_DELAY
+from .entity import GoodHomeEntity, async_add_new_devices, is_auto_mode
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +45,11 @@ MODE_TO_PRESET = {
 MODE_OFF = 3  # Manuel hors-gel : seul mode d'arrêt, comme ESPHome_GoodHome
 MODE_HEAT = 1  # Manuel confort
 MODE_OVERRIDE = 8  # Manuel override : le radiateur garde overrideTemp
+MODE_AUTO = 60  # Automatique : le planning choisit ensuite 60, 61 ou 30
+# Planning actif (hvac_mode auto), y compris un forçage 9/10 qui dure jusqu'au créneau suivant
+SCHEDULE_MODES = {9, 10, *AUTO_MODES}
+# Modes manuels que turn_on rétablit tels quels après un arrêt
+RESTORED_MANUAL_MODES = {MODE_HEAT, 2, MODE_OVERRIDE}
 
 # Raison d'un mode éco, exposée dans l'attribut eco_reason
 ECO_REASONS = {2: "manual", 30: "absence", 61: "schedule"}
@@ -74,7 +80,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
     )
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO, PRESET_MANUAL, PRESET_AWAY, PRESET_SLEEP]
     _attr_min_temp = 7
     _attr_max_temp = 30
@@ -84,6 +90,23 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         """Initialiser le thermostat."""
         super().__init__(coordinator, device_id, f"goodhome_climate_{device_id}")
         self._debounce_task = None
+        self._last_on_mode = None  # Dernier mode confirmé hors arrêt, rétabli par turn_on
+
+    async def async_added_to_hass(self):
+        """Retenir le mode actuel dès l'ajout."""
+        await super().async_added_to_hass()
+        self._remember_on_mode()
+
+    @callback
+    def _handle_coordinator_update(self):
+        self._remember_on_mode()
+        super()._handle_coordinator_update()
+
+    def _remember_on_mode(self):
+        # Mode confirmé par le radiateur (pas l'état optimiste) : un arrêt en attente garde le mode d'avant
+        mode = ((self.device or {}).get("state") or {}).get("targetMode")
+        if mode is not None and mode != MODE_OFF:
+            self._last_on_mode = mode
 
     @property
     def current_temperature(self):
@@ -102,8 +125,11 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        """Arrêt en hors-gel manuel, chauffe sinon."""
-        return HVACMode.OFF if self.state_data.get("targetMode") == MODE_OFF else HVACMode.HEAT
+        """Arrêt en hors-gel manuel, automatique quand le planning est actif, chauffe sinon."""
+        mode = self.state_data.get("targetMode")
+        if mode == MODE_OFF:
+            return HVACMode.OFF
+        return HVACMode.AUTO if mode in SCHEDULE_MODES else HVACMode.HEAT
 
     @property
     def hvac_action(self):
@@ -133,7 +159,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         else:
             temp_range, temp_color = "hot", "#FF5722"
 
-        return {
+        return self._with_pending({
             "humidity": state.get("humidity"),
             "window_open": state.get("window", False),
             "occupancy": state.get("occupancyStatus", False),
@@ -147,6 +173,8 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
             "self_learning_improve": state.get("selfLearningImprove"),
             "self_learning_days": state.get("selfLearningCountDay"),
             "eco_reason": ECO_REASONS.get(state.get("targetMode")),
+            # Valeur brute de l'API : plusieurs modes donnent le même hvac_mode et le même preset
+            "target_mode_value": state.get("targetMode"),
             "firmware_version": state.get("fwVer"),
             "hardware_version": state.get("HwVer"),
             "code_name": state.get("codeName"),
@@ -155,7 +183,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
             "fault_system": state.get("faultSystem"),
             "temperature_range": temp_range,
             "temperature_color": temp_color,
-        }
+        })
 
     async def async_set_temperature(self, **kwargs):
         """Changer la consigne, envoyée après DEBOUNCE_DELAY sans nouveau changement."""
@@ -188,12 +216,24 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
             self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode):
-        """Arrêter (hors-gel manuel) ou chauffer (confort manuel)."""
+        """Arrêter (hors-gel manuel), chauffer (confort manuel) ou suivre le planning."""
+        if hvac_mode == HVACMode.AUTO:
+            # Le planning peut choisir 61 ou 30 au lieu de 60 : tout mode auto confirme
+            await self.async_send_state({"targetMode": MODE_AUTO}, confirmed=is_auto_mode)
+            return
         await self.async_send_state({"targetMode": MODE_OFF if hvac_mode == HVACMode.OFF else MODE_HEAT})
 
     async def async_turn_on(self):
-        """Chauffer (confort manuel)."""
-        await self.async_set_hvac_mode(HVACMode.HEAT)
+        """Rallumer dans le mode d'avant l'arrêt : planning, mode manuel, sinon confort manuel."""
+        if self.hvac_mode != HVACMode.OFF:
+            return
+        if self._last_on_mode in SCHEDULE_MODES:
+            await self.async_set_hvac_mode(HVACMode.AUTO)
+        elif self._last_on_mode in RESTORED_MANUAL_MODES:
+            await self.async_send_state({"targetMode": self._last_on_mode})
+        else:
+            # Mode d'avant inconnu (arrêté avant le démarrage de Home Assistant) ou provisoire
+            await self.async_set_hvac_mode(HVACMode.HEAT)
 
     async def async_turn_off(self):
         """Arrêter (hors-gel manuel)."""

@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.const import EntityCategory
 
 from .entity import GoodHomeEntity, async_add_new_devices
 
@@ -17,25 +18,21 @@ SWITCHES = (
     GoodHomeSwitchDescription(
         key="window",
         translation_key="window",
-        icon="mdi:window-open-variant",
         description_text="Enable/disable automatic open window detection based on temperature drop",
     ),
     GoodHomeSwitchDescription(
         key="occupancyStatus",
         translation_key="occupancy_status",
-        icon="mdi:account-check",
         description_text="Enable/disable occupancy consideration for heating control",
     ),
     GoodHomeSwitchDescription(
         key="selfLearning",
         translation_key="self_learning",
-        icon="mdi:school",
         description_text="Enable/disable auto-learning mode (requires occupancyStatus enabled)",
     ),
     GoodHomeSwitchDescription(
         key="noprog",
         translation_key="manual_mode",
-        icon="mdi:hand-back-right",
         description_text="Manual mode (on) or Auto mode with scheduling (off)",
     ),
 )
@@ -60,6 +57,7 @@ class GoodHomeSwitch(GoodHomeEntity, SwitchEntity):
     """Réglage booléen d'un radiateur GoodHome."""
 
     entity_description: GoodHomeSwitchDescription
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator, device_id, description):
         """Initialiser l'interrupteur."""
@@ -80,7 +78,7 @@ class GoodHomeSwitch(GoodHomeEntity, SwitchEntity):
         attrs = {"description": self.entity_description.description_text}
         if self.entity_description.key == "window":
             attrs["window_timeout_minutes"] = self.state_data.get("windowTimeOut")
-        return attrs
+        return self._with_pending(attrs)
 
     async def async_turn_on(self, **kwargs):
         """Activer le réglage."""

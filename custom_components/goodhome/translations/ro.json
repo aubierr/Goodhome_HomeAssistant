@@ -71,6 +71,12 @@
               "medium": "Moderat",
               "hot": "Cald"
             }
+          },
+          "target_mode_value": {
+            "name": "Mod brut (API)"
+          },
+          "pending_confirmation": {
+            "name": "În așteptarea confirmării"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Face termostatul să emită un semnal sonor pentru a-l localiza.",
       "fields": {
         "device_id": {
-          "name": "ID dispozitiv",
-          "description": "Identificatorul GoodHome al dispozitivului (atributul device_id al senzorului Informații dispozitiv)."
+          "name": "Dispozitiv",
+          "description": "Radiatorul de localizat. Identificatorul GoodHome (atributul device_id al senzorului Informații dispozitiv) este în continuare acceptat."
         }
       }
     }

@@ -8,7 +8,7 @@ from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
-from homeassistant.helpers import config_validation as cv, issue_registry as ir
+from homeassistant.helpers import config_validation as cv, device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
@@ -50,6 +50,7 @@ class GoodHomeData:
     """Données d'exécution d'un compte GoodHome (entry.runtime_data)."""
 
     coordinator: GoodHomeCoordinator
+    push: GoodHomePushClient
 
 
 type GoodHomeConfigEntry = ConfigEntry[GoodHomeData]
@@ -60,6 +61,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def async_identify_device(call: ServiceCall) -> None:
         device_id = call.data["device_id"]
+        # Appareil Home Assistant (sélecteur), ou identifiant GoodHome des anciennes automatisations
+        if (device := dr.async_get(hass).async_get(device_id)) is not None:
+            device_id = next(
+                (identifier for domain, identifier in device.identifiers if domain == DOMAIN), device_id
+            )
         for entry in hass.config_entries.async_entries(DOMAIN):
             if entry.state is not ConfigEntryState.LOADED:
                 continue
@@ -119,10 +125,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
 
     coordinator = GoodHomeCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = GoodHomeData(coordinator=coordinator)
 
     # Écoute temps réel, arrêtée automatiquement au déchargement
     push_client = GoodHomePushClient(session, client, coordinator.async_apply_push_event)
+    entry.runtime_data = GoodHomeData(coordinator=coordinator, push=push_client)
     entry.async_create_background_task(hass, push_client.run(), "goodhome_push")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

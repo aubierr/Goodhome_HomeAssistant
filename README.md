@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -70,7 +70,11 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les ident
 ### Climate
 - `climate.xxx` - Contrôle du thermostat
   - Température cible
-  - Modes HVAC (Heat, Off), avec les actions `climate.turn_on` / `climate.turn_off`
+  - Modes HVAC :
+    - `auto` : le radiateur suit son planning (modes 60, 61 et 30, ainsi que les forçages 9 et 10 qui durent jusqu'au créneau suivant). Choisir `auto` envoie le mode 60, puis le planning choisit confort ou éco
+    - `heat` : mode manuel (choisir `heat` envoie Manuel Confort)
+    - `off` : hors-gel manuel
+  - `climate.turn_off` arrête le radiateur ; `climate.turn_on` le rallume dans son mode d'avant l'arrêt : le planning, ou le même mode manuel (Confort, Éco ou consigne libre). Sans mode connu (radiateur arrêté avant le démarrage de Home Assistant), il repasse en Manuel Confort. Sur un radiateur déjà allumé, `turn_on` ne change rien
   - Action en cours (`hvac_action`) : `heating` quand le radiateur chauffe (duty cycle > 0), `idle` sinon
   - Presets (Confort, Éco, Manuel, Absence, Absence courte `sleep`)
   - Attributs étendus :
@@ -78,6 +82,8 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les ident
     - `self_learning_days` : Progression de l'apprentissage (0-14)
     - `temperature_range` : `cold` / `medium` / `hot`
     - `temperature_color` : Code couleur pour l'interface
+    - `target_mode_value` : valeur brute du mode (`targetMode`), utile car plusieurs modes donnent le même mode HVAC et le même preset
+    - `pending_confirmation` : valeurs envoyées que le radiateur n'a pas encore confirmées (présent seulement pendant l'attente, aussi sur le select, les switches et les numbers)
 
 ### Sensors
 - `sensor.xxx_current_temperature` - Température actuelle
@@ -87,7 +93,7 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les ident
 - `sensor.xxx_power_consumption` - Consommation électrique calculée (W)
 - `sensor.xxx_comfort_temperature` / `eco_temperature` / `frost_protection_temperature` - Températures confort, éco et hors-gel (doublons des entités Number, désactivés par défaut sur les nouvelles installations)
 - `sensor.xxx_self_learning_days` - Jours d'apprentissage (0-14)
-- `sensor.xxx_device_information` - Informations appareil (diagnostic)
+- `sensor.xxx_device_information` - Informations appareil (diagnostic). Son attribut `other_fields` liste les champs envoyés par l'API qu'aucune entité n'exploite encore (nouveau firmware, nouveau modèle...)
 
 ### Binary Sensors
 - `binary_sensor.xxx_connectivity` - État de connexion
@@ -95,6 +101,8 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les ident
 - `binary_sensor.xxx_problem` - Détection de problème
 
 ### Switches
+Réglages du radiateur, rangés dans la section **Configuration** de l'appareil.
+
 - `switch.xxx_open_window_detection` - Détection fenêtre ouverte
 - `switch.xxx_presence_detection` - Détection de présence
 - `switch.xxx_self_learning` - Mode auto-apprentissage
@@ -111,6 +119,8 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les ident
   - Absence courte / longue
 
 ### Number
+Rangés dans la section **Configuration** de l'appareil.
+
 - `number.xxx_comfort_temperature` - Température confort (7-30°C, pas de 0.5°C)
 - `number.xxx_eco_temperature` - Température éco (7-30°C, pas de 0.5°C)
 - `number.xxx_frost_protection_temperature` - Température hors-gel (7-30°C, pas de 0.5°C)
@@ -125,12 +135,12 @@ Chaque thermostat apparaît comme un appareil avec son modèle (`codeName`, ex. 
 - **Radiateur retiré** : ses entités passent en « indisponible ». Pour le supprimer, ouvrez l'appareil dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Supprimer**. La suppression n'est proposée que pour un radiateur qui n'existe plus dans le compte GoodHome.
 
 ### Service `goodhome.identify_device`
-Fait biper un thermostat pour le localiser (le bouton Identifier fait la même chose sans identifiant à recopier).
+Fait biper un thermostat pour le localiser (le bouton Identifier fait la même chose). Dans l'éditeur d'automatisations, choisissez le radiateur dans la liste des appareils. L'identifiant GoodHome (attribut `device_id` du sensor Informations appareil) des anciennes automatisations reste accepté.
 
 ```yaml
 action: goodhome.identify_device
 data:
-  device_id: "5f1e2d3c4b5a69788796a5b4"  # attribut device_id du sensor Informations appareil
+  device_id: "5f1e2d3c4b5a69788796a5b4"  # appareil Home Assistant ou identifiant GoodHome
 ```
 
 ## 🎯 Modes targetMode
@@ -225,13 +235,13 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 - Le cloud GoodHome est injoignable : Home Assistant réessaie automatiquement, aucune action n'est nécessaire
 
 ### Les modifications ne sont pas prises en compte
-- Le radiateur met de 45 s à 2 min à appliquer une commande (mesuré sur l'API réelle) : ce délai vient du radiateur, pas de l'intégration. Pendant ce temps, Home Assistant affiche la nouvelle valeur ; si le radiateur ne l'a pas confirmée au bout de 3 minutes, la valeur réelle réapparaît et un avertissement est écrit dans les journaux
+- Le radiateur met de 45 s à 2 min à appliquer une commande (mesuré sur l'API réelle) : ce délai vient du radiateur, pas de l'intégration. Pendant ce temps, Home Assistant affiche la nouvelle valeur, et l'attribut `pending_confirmation` liste ce qui attend la confirmation ; si le radiateur ne l'a pas confirmée au bout de 3 minutes, la valeur réelle réapparaît et un avertissement est écrit dans les journaux
 - Vérifiez la connectivité de vos radiateurs
 - Les radiateurs envoient leurs mesures au cloud quand elles changent : une valeur qui ne bouge pas est simplement stable. Il n'existe aucun moyen de forcer une remontée (le ping de `goodhome.identify_device` ne fait que biper)
 - Si une commande est refusée par le cloud, l'action Home Assistant échoue avec le message d'erreur, et l'ancienne valeur réapparaît
 
 ### Joindre un diagnostic à un rapport de bug
-Ouvrez l'intégration dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Télécharger les diagnostics**. Le fichier contient les réglages et mesures des radiateurs, sans email, mot de passe, identifiants ni noms de pièces.
+Ouvrez l'intégration dans **Paramètres** → **Appareils et services** → **GoodHome**, puis **⋮** → **Télécharger les diagnostics**. Le fichier contient les réglages et mesures des radiateurs, sans email, mot de passe, identifiants ni noms de pièces, ainsi que l'état de l'écoute temps réel (`push` : connectée ou non, nombre de connexions, date du dernier événement, dernière erreur).
 
 ## 📝 Logs
 

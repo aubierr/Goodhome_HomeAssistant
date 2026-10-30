@@ -71,6 +71,12 @@
               "medium": "Moderate",
               "hot": "Warm"
             }
+          },
+          "target_mode_value": {
+            "name": "Raw target mode"
+          },
+          "pending_confirmation": {
+            "name": "Awaiting confirmation"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Makes the thermostat beep so you can locate it.",
       "fields": {
         "device_id": {
-          "name": "Device ID",
-          "description": "GoodHome device identifier (device_id attribute of the Device information sensor)."
+          "name": "Device",
+          "description": "Radiator to identify. The GoodHome identifier (device_id attribute of the Device information sensor) is still accepted."
         }
       }
     }

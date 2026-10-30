@@ -71,6 +71,12 @@
               "medium": "Modéré",
               "hot": "Chaud"
             }
+          },
+          "target_mode_value": {
+            "name": "Mode brut (API)"
+          },
+          "pending_confirmation": {
+            "name": "En attente de confirmation"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Fait biper le thermostat pour le localiser.",
       "fields": {
         "device_id": {
-          "name": "ID de l'appareil",
-          "description": "Identifiant GoodHome de l'appareil (attribut device_id du capteur Informations appareil)."
+          "name": "Appareil",
+          "description": "Radiateur à faire biper. L'identifiant GoodHome (attribut device_id du capteur Informations appareil) reste accepté."
         }
       }
     }

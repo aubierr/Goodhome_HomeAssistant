@@ -71,6 +71,12 @@
               "medium": "Moderado",
               "hot": "Quente"
             }
+          },
+          "target_mode_value": {
+            "name": "Modo bruto (API)"
+          },
+          "pending_confirmation": {
+            "name": "A aguardar confirmação"
           }
         }
       }
@@ -165,8 +171,8 @@
       "description": "Faz o termóstato emitir um sinal sonoro para o localizar.",
       "fields": {
         "device_id": {
-          "name": "ID do dispositivo",
-          "description": "Identificador GoodHome do dispositivo (atributo device_id do sensor Informações do dispositivo)."
+          "name": "Dispositivo",
+          "description": "Radiador a localizar. O identificador GoodHome (atributo device_id do sensor Informações do dispositivo) continua a ser aceite."
         }
       }
     }

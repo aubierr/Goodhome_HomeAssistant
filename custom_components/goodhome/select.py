@@ -3,7 +3,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.exceptions import ServiceValidationError
 
 from .const import DOMAIN
-from .entity import GoodHomeEntity, async_add_new_devices
+from .entity import GoodHomeEntity, async_add_new_devices, is_auto_mode
 
 # Mapping des modes targetMode selon ESPHome_GoodHome (clé de traduction -> valeur API)
 # Voir docs/MODES.md pour le détail de chaque mode
@@ -30,15 +30,8 @@ TARGET_MODES_REVERSE = {v: k for k, v in TARGET_MODES.items()}
 # Modes affichés mais gérés par le radiateur lui-même, non sélectionnables
 READ_ONLY_MODES = {"eco_auto_absence"}
 
-# Envoyer 60 ou 61 passe le radiateur en automatique : c'est son planning qui choisit
-# ensuite confort (60) ou éco (61), ou 30 s'il ne détecte personne (observé sur l'API réelle)
+# Envoyer 60 ou 61 passe le radiateur en automatique : confirmé par n'importe quel mode auto
 AUTO_OPTIONS = {"auto_comfort", "auto_eco"}
-AUTO_MODES = {30, 60, 61}
-
-
-def _is_auto_mode(state):
-    """Le radiateur est passé en automatique, quel que soit le mode choisi par son planning."""
-    return state.get("targetMode") in AUTO_MODES
 
 # Options présentées à l'utilisateur (dans l'ordre logique d'utilisation)
 TARGET_MODE_OPTIONS = [
@@ -73,7 +66,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class GoodHomeTargetModeSelect(GoodHomeEntity, SelectEntity):
     """Mode de fonctionnement d'un radiateur GoodHome."""
 
-    _attr_icon = "mdi:target"
     _attr_translation_key = "target_mode"
     _attr_options = TARGET_MODE_OPTIONS
 
@@ -97,14 +89,14 @@ class GoodHomeTargetModeSelect(GoodHomeEntity, SelectEntity):
             )
         await self.async_send_state(
             {"targetMode": TARGET_MODES[option]},
-            confirmed=_is_auto_mode if option in AUTO_OPTIONS else None,
+            confirmed=is_auto_mode if option in AUTO_OPTIONS else None,
         )
 
     @property
     def extra_state_attributes(self):
         """Valeur brute du mode et réglages associés."""
         state = self.state_data
-        return {
+        return self._with_pending({
             "target_mode_value": state.get("targetMode"),
             "target_temp": state.get("targetTemp"),
             "eco_temp": state.get("ecoTemp"),
@@ -114,4 +106,4 @@ class GoodHomeTargetModeSelect(GoodHomeEntity, SelectEntity):
             "manual_mode": state.get("noprog"),
             "self_learning": state.get("selfLearning"),
             "occupancy_status": state.get("occupancyStatus"),
-        }
+        })

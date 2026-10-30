@@ -6,7 +6,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import AUTO_MODES, DOMAIN
 from .coordinator import GoodHomeCoordinator
 from .goodhome_api import GoodHomeError
 
@@ -26,6 +26,11 @@ def _same_value(actual, expected):
         except (TypeError, ValueError):
             return False
     return actual == expected
+
+
+def is_auto_mode(state):
+    """Le radiateur est passé en automatique, quel que soit le mode choisi par son planning."""
+    return state.get("targetMode") in AUTO_MODES
 
 
 def async_add_new_devices(entry, coordinator, build_entities, async_add_entities):
@@ -74,6 +79,12 @@ class GoodHomeEntity(CoordinatorEntity[GoodHomeCoordinator]):
         """Champs « state » du radiateur, avec les valeurs en attente de confirmation."""
         device = self.device
         return {**(device["state"] if device else {}), **self._pending}
+
+    def _with_pending(self, attributes):
+        """Ajouter aux attributs les valeurs envoyées que le radiateur n'a pas encore confirmées."""
+        if self._pending:
+            attributes["pending_confirmation"] = dict(self._pending)
+        return attributes
 
     @property
     def available(self):

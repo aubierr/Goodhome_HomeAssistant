@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import time
+from datetime import UTC, datetime
 
 import aiohttp
 
@@ -51,6 +52,11 @@ class GoodHomePushClient:
         self._client = client
         self._on_event = on_event
         self._token = None  # Token de la session en cours, pour ne renouveler que celui refusé
+        # État de l'écoute, pour les diagnostics
+        self.connected = False
+        self.connections = 0  # Sessions ouvertes depuis le chargement (plus d'une = reconnexions)
+        self.last_event = None  # Date du dernier événement reçu
+        self.last_error = None  # Dernière cause de déconnexion
 
     async def run(self):
         """Écouter indéfiniment, avec reconnexion automatique (s'arrête à l'annulation)."""
@@ -62,15 +68,18 @@ class GoodHomePushClient:
             except asyncio.CancelledError:
                 raise
             except GoodHomePushAuthError as err:
+                self.last_error = "token refused"
                 _LOGGER.debug("GoodHome push: token refused, renewing it")
                 try:
                     await self._client.async_renew_token(err.args[0] if err.args else None)
                 except GoodHomeError as renew_err:
                     _LOGGER.debug("GoodHome push: token renewal failed (%s)", renew_err)
             except (aiohttp.ClientError, asyncio.TimeoutError, GoodHomePushSessionLost, ValueError) as err:
+                self.last_error = repr(err)
                 _LOGGER.debug("GoodHome push: connection lost (%s), reconnecting in %ss", err, delay)
-            except Exception:
+            except Exception as err:
                 # Réponse inattendue du serveur : l'écoute ne doit jamais s'arrêter
+                self.last_error = repr(err)
                 _LOGGER.exception("GoodHome push: unexpected error, reconnecting in %ss", delay)
 
             # Une session qui a tenu longtemps remet le délai de reconnexion à zéro
@@ -106,10 +115,12 @@ class GoodHomePushClient:
         url = f"{base}&sid={opened['sid']}"
         ping_interval = opened.get("pingInterval", 25000) / 1000
         _LOGGER.debug("GoodHome push: connected (ping every %ss)", ping_interval)
-        self._handle_packets(packets[1:])
+        self.connected = True
+        self.connections += 1
 
         ping_task = asyncio.create_task(self._ping_loop(url, headers, ping_interval))
         try:
+            self._handle_packets(packets[1:])
             while True:
                 if ping_task.done():
                     # Fait remonter l'erreur du ping (session perdue)
@@ -117,6 +128,7 @@ class GoodHomePushClient:
                 payload = await self._request("GET", f"{url}&t={socketio_t_param()}", headers, timeout=ping_interval + 20)
                 self._handle_packets(parse_payload(payload))
         finally:
+            self.connected = False
             ping_task.cancel()
 
     async def _ping_loop(self, url, headers, interval):
@@ -138,6 +150,7 @@ class GoodHomePushClient:
                 _LOGGER.debug("GoodHome push: invalid event %s", packet)
                 continue
             if isinstance(event, list) and event and isinstance(event[0], str):
+                self.last_event = datetime.now(UTC)
                 try:
                     self._on_event(event[0], event[1] if len(event) > 1 else None)
                 except Exception:

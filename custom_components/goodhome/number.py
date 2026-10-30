@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription, NumberMode
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature
 
 from .entity import GoodHomeEntity, async_add_new_devices
 
@@ -18,20 +18,17 @@ NUMBERS = (
     GoodHomeNumberDescription(
         key="comfTemp",
         translation_key="comfort_temperature",
-        icon="mdi:home-thermometer",
-        description_text="Température de consigne en mode Confort",
+        description_text="Setpoint temperature in comfort mode",
     ),
     GoodHomeNumberDescription(
         key="ecoTemp",
         translation_key="eco_temperature",
-        icon="mdi:leaf",
-        description_text="Température de consigne en mode Économie d'énergie",
+        description_text="Setpoint temperature in eco (energy saving) mode",
     ),
     GoodHomeNumberDescription(
         key="antifTemp",
         translation_key="antifreeze_temperature",
-        icon="mdi:snowflake",
-        description_text="Température de consigne en mode Hors-gel (OFF)",
+        description_text="Setpoint temperature in frost protection mode (off)",
     ),
 )
 
@@ -55,6 +52,7 @@ class GoodHomeTemperatureNumber(GoodHomeEntity, NumberEntity):
     """Température de consigne d'un radiateur GoodHome."""
 
     entity_description: GoodHomeNumberDescription
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 7.0
@@ -75,12 +73,12 @@ class GoodHomeTemperatureNumber(GoodHomeEntity, NumberEntity):
     def extra_state_attributes(self):
         """Contexte de la consigne."""
         state = self.state_data
-        return {
+        return self._with_pending({
             "parameter": self.entity_description.key,
             "target_temp": state.get("targetTemp"),
             "current_temp": state.get("currentTemp"),
             "description": self.entity_description.description_text,
-        }
+        })
 
     async def async_set_native_value(self, value: float) -> None:
         """Changer la consigne (l'API attend une décimale au plus)."""

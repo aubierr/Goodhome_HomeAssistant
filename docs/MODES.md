@@ -81,22 +81,24 @@ Ces interrupteurs ne sont pas des valeurs de `targetMode`, mais ils changent la 
 | 4 | heat | manual | — |
 | 5 | heat | away | — |
 | 8 | heat | manual | — |
-| 9 | heat | comfort | — |
-| 10 | heat | eco | — |
+| 9 | auto | comfort | — |
+| 10 | auto | eco | — |
 | 12 | heat | sleep | — |
-| 30 | heat | eco | `absence` |
-| 60 | heat | comfort | — |
-| 61 | heat | eco | `schedule` |
+| 30 | auto | eco | `absence` |
+| 60 | auto | comfort | — |
+| 61 | auto | eco | `schedule` |
 | 70 | heat | manual | — |
 
-Une valeur inconnue donne `heat` + `manual`.
+Une valeur inconnue donne `heat` + `manual`. `auto` couvre les modes où le planning est actif : 30, 60 et 61, et les forçages 9 et 10, qui ne durent que jusqu'au créneau suivant. L'attribut `target_mode_value` du `climate` donne la valeur brute.
 
 ### Écriture (Home Assistant → `targetMode`)
 
 | Action | `targetMode` envoyé |
 |--------|:-------------------:|
 | `climate.turn_off` / `hvac_mode: off` | 3 |
-| `climate.turn_on` / `hvac_mode: heat` | 1 |
+| `hvac_mode: heat` | 1 |
+| `hvac_mode: auto` | 60 (confirmé par 30, 60 ou 61 : c'est le planning qui choisit) |
+| `climate.turn_on` | le mode d'avant l'arrêt : 60 s'il suivait le planning (30, 60, 61, 9 ou 10), le même mode s'il était en 1, 2 ou 8, sinon 1 ; rien si le radiateur est déjà allumé |
 | `climate.set_temperature` | 8 (+ `overrideTemp`) |
 | preset `comfort` | 9 |
 | preset `eco` | 10 |

@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.0] - Non publiée
+
+Aucun attribut n'est retiré : ils restent tous disponibles pour le débogage, et de nouveaux s'y ajoutent.
+
+### ⚠️ Changement de comportement
+- 🗓️ Un radiateur qui suit son planning (modes 30, 60, 61, et les forçages 9 et 10) s'affiche en mode HVAC `auto` au lieu de `heat`. Les automatisations qui testent l'état `heat` sont à revoir
+
+### Ajouté
+- 🗓️ Mode HVAC `auto` sur le thermostat : il remet le radiateur sur son planning (mode 60, confirmé quel que soit le mode choisi ensuite par le planning)
+- 🔁 `climate.turn_on` rallume le radiateur dans son mode d'avant l'arrêt (planning, Manuel Confort, Manuel Éco ou consigne libre) au lieu de toujours passer en Manuel Confort : une automatisation « fenêtre ouverte → arrêt → rallumage » ne fait plus perdre le planning
+- 🔍 Attribut `target_mode_value` sur le thermostat : valeur brute du mode, que plusieurs modes partagent en mode HVAC et en preset
+- ⏳ Attribut `pending_confirmation` sur le thermostat, le select, les switches et les numbers : valeurs envoyées que le radiateur n'a pas encore confirmées
+- 🧩 Attribut `other_fields` sur le capteur Informations appareil : champs envoyés par l'API qu'aucune entité n'exploite encore (nouveau firmware, nouveau modèle...)
+- 📡 Diagnostics : état de l'écoute temps réel (connectée ou non, nombre de connexions, dernier événement, dernière erreur)
+- 🎨 Icônes dans `icons.json`, avec une icône différente quand un réglage est désactivé (fenêtre, présence, auto-apprentissage, mode manuel) et une icône pour l'action Identifier
+
+### Modifié
+- ⚙️ Les switches et les températures de consigne (Number) sont rangés dans la section **Configuration** de l'appareil et n'apparaissent plus dans les tableaux de bord générés automatiquement
+- 🎯 L'action `goodhome.identify_device` propose de choisir le radiateur dans la liste des appareils ; l'identifiant GoodHome des anciennes automatisations reste accepté
+- 🔤 Les attributs `description` des températures de consigne sont en anglais, comme ceux des switches
+- 🧪 100 tests, 94 % du code
+
 ## [2.0.0] - Non publiée
 
 Les identifiants des entités ne changent pas : historiques, tableaux de bord et automatisations restent valables.
