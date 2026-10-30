@@ -145,7 +145,12 @@ class GoodHomeAPI:
         return result
     
     def _connect_socket(self):
-        """Establish Socket.io connection and get SID."""
+        """Establish Socket.io connection and get SID.
+
+        À faire avant chaque commande (PATCH) : sans elle, la commande arrive
+        au radiateur en ~45 s au lieu de quelques secondes (testé sur l'API
+        réelle). Inutile pour les lectures.
+        """
         try:
             t_param = self._generate_t_param()
             url = f"{BASE_URL}/socket.io-v2/?EIO=3&transport=polling&userId={self.user_id}&t={t_param}"
@@ -195,10 +200,8 @@ class GoodHomeAPI:
     def get_devices(self):
         """Get all devices with 304 Not Modified support."""
         try:
-            # Establish Socket.io connection first
-            if not self._connect_socket():
-                raise GoodHomeConnectionError("Failed to establish Socket.io connection")
-
+            # Pas de poignée de main Socket.io : la lecture REST fonctionne sans
+            # (testé sur l'API réelle), ce qui économise 2 requêtes par cycle
             url = f"{BASE_URL}/v1/users/{self.user_id}/devices"
             headers = self._get_headers()
             
@@ -227,8 +230,6 @@ class GoodHomeAPI:
                 _LOGGER.warning("Received 401, refreshing token...")
                 if self.refresh_access_token():
                     # Réessayer avec le nouveau token
-                    if not self._connect_socket():
-                        raise GoodHomeConnectionError("Failed to establish Socket.io connection")
                     headers = self._get_headers()
                     # Ré-ajouter les headers de cache
                     if cache_key in self._etags:
@@ -279,9 +280,6 @@ class GoodHomeAPI:
     def get_device(self, device_id):
         """Get a specific device with 304 Not Modified support."""
         try:
-            if not self._connect_socket():
-                return None
-            
             url = f"{BASE_URL}/v1/devices/{device_id}/"
             headers = self._get_headers()
             

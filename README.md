@@ -169,7 +169,7 @@ Le **mode 30** est un mode spécial qui se déclenche automatiquement :
 
 Cette intégration utilise les mêmes endpoints et headers que l'application GoodHome officielle :
 
-- **Socket.io** : `authorization: Bearer {token}`
+- **Socket.io** : `authorization: Bearer {token}`, uniquement avant l'envoi d'une commande (la lecture des radiateurs s'en passe)
 - **API v1** : `access-token: {token}` + `if-none-match: {etag}`
 - **Cache HTTP 304** : Optimisation de la bande passante
 - **Paramètres booléens** : Format `true/false` JSON
