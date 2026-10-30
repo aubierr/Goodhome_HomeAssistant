@@ -68,6 +68,9 @@
     "binary_sensor": {
       "heating": {
         "name": "Chauffage"
+      },
+      "self_learning_improve": {
+        "name": "Amélioration auto-apprentissage"
       }
     },
     "switch": {

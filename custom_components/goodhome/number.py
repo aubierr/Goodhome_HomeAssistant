@@ -58,8 +58,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome number platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
-    api = hass.data["goodhome"][entry.entry_id]["api"]
+    coordinator = entry.runtime_data.coordinator
+    api = entry.runtime_data.api
     
     devices = coordinator.data
     entities = []
@@ -183,24 +183,24 @@ class GoodHomeTemperatureNumber(CoordinatorEntity, NumberEntity):
                     if device and device.get("state"):
                         current_value = device["state"].get(self._parameter_name)
                         if current_value == value:
-                            _LOGGER.info(f"Temperature {self._parameter_name} confirmed: {value}°C")
+                            _LOGGER.info("Temperature %s confirmed: %s°C", self._parameter_name, value)
                             self._optimistic_value = None
                             self.async_write_ha_state()
                             return
                 
                 # Si après 40s pas de confirmation, on garde l'état optimiste
-                _LOGGER.warning(f"Temperature {self._parameter_name} not confirmed after {POLLING_MAX_ATTEMPTS * POLLING_INTERVAL}s, keeping optimistic state")
+                _LOGGER.warning("Temperature %s not confirmed after %ss, keeping optimistic state", self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
             else:
                 # Échec de l'API, annuler l'état optimiste
                 self._optimistic_value = None
                 self.async_write_ha_state()
-                _LOGGER.error(f"Failed to set {self._attr_name}")
+                _LOGGER.error("Failed to set %s %s", self._device_name, self._parameter_name)
                 
         except Exception as err:
             # En cas d'erreur, annuler l'état optimiste
             self._optimistic_value = None
             self.async_write_ha_state()
-            _LOGGER.error(f"Error setting {self._attr_name}: {err}")
+            _LOGGER.error("Error setting %s %s: %s", self._device_name, self._parameter_name, err)
     
     @property
     def extra_state_attributes(self):

@@ -69,8 +69,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome switch platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
-    api = hass.data["goodhome"][entry.entry_id]["api"]
+    coordinator = entry.runtime_data.coordinator
+    api = entry.runtime_data.api
     
     devices = coordinator.data
     entities = []
@@ -209,26 +209,26 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
                         api_value = device["state"].get(self._parameter_name)
                         if api_value is True or api_value == 1:
                             # État confirmé par l'API, on peut abandonner l'état optimiste
-                            _LOGGER.info(f"{self._attr_name} turned on confirmed after {(attempt+1)*POLLING_INTERVAL}s")
+                            _LOGGER.info("%s %s turned on confirmed after %ss", self._device_name, self._parameter_name, (attempt+1)*POLLING_INTERVAL)
                             self._optimistic_state = None
                             self.async_write_ha_state()
                             return
                 
                 # Après le timeout, abandonner l'état optimiste même sans confirmation
-                _LOGGER.warning(f"{self._attr_name} turn on not confirmed after 30s, assuming success")
+                _LOGGER.warning("%s %s turn on not confirmed after %ss, assuming success", self._device_name, self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
                 self._optimistic_state = None
                 self.async_write_ha_state()
             else:
                 # En cas d'échec, annuler l'état optimiste
                 self._optimistic_state = None
                 self.async_write_ha_state()
-                _LOGGER.error(f"Failed to turn on {self._attr_name}")
+                _LOGGER.error("Failed to turn on %s %s", self._device_name, self._parameter_name)
                 
         except Exception as err:
             # En cas d'erreur, annuler l'état optimiste
             self._optimistic_state = None
             self.async_write_ha_state()
-            _LOGGER.error(f"Error turning on {self._attr_name}: {err}")
+            _LOGGER.error("Error turning on %s %s: %s", self._device_name, self._parameter_name, err)
     
     async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
@@ -258,26 +258,26 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
                         api_value = device["state"].get(self._parameter_name)
                         if api_value is False or api_value == 0:
                             # État confirmé par l'API, on peut abandonner l'état optimiste
-                            _LOGGER.info(f"{self._attr_name} turned off confirmed after {(attempt+1)*POLLING_INTERVAL}s")
+                            _LOGGER.info("%s %s turned off confirmed after %ss", self._device_name, self._parameter_name, (attempt+1)*POLLING_INTERVAL)
                             self._optimistic_state = None
                             self.async_write_ha_state()
                             return
                 
                 # Après le timeout, abandonner l'état optimiste même sans confirmation
-                _LOGGER.warning(f"{self._attr_name} turn off not confirmed after 30s, assuming success")
+                _LOGGER.warning("%s %s turn off not confirmed after %ss, assuming success", self._device_name, self._parameter_name, POLLING_MAX_ATTEMPTS * POLLING_INTERVAL)
                 self._optimistic_state = None
                 self.async_write_ha_state()
             else:
                 # En cas d'échec, annuler l'état optimiste
                 self._optimistic_state = None
                 self.async_write_ha_state()
-                _LOGGER.error(f"Failed to turn off {self._attr_name}")
+                _LOGGER.error("Failed to turn off %s %s", self._device_name, self._parameter_name)
                 
         except Exception as err:
             # En cas d'erreur, annuler l'état optimiste
             self._optimistic_state = None
             self.async_write_ha_state()
-            _LOGGER.error(f"Error turning off {self._attr_name}: {err}")
+            _LOGGER.error("Error turning off %s %s: %s", self._device_name, self._parameter_name, err)
     
     @property
     def extra_state_attributes(self):

@@ -65,8 +65,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome select platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
-    api = hass.data["goodhome"][entry.entry_id]["api"]
+    coordinator = entry.runtime_data.coordinator
+    api = entry.runtime_data.api
     
     devices = coordinator.data
     entities = []
@@ -124,7 +124,7 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         if option not in TARGET_MODES:
-            _LOGGER.error(f"Unknown target mode: {option}")
+            _LOGGER.error("Unknown target mode: %s", option)
             return
         
         mode_value = TARGET_MODES[option]
@@ -133,7 +133,7 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
         self._optimistic_state = option
         self.async_write_ha_state()
         
-        _LOGGER.debug(f"Setting target mode to {option} (value: {mode_value}) for device {self._device_id}")
+        _LOGGER.debug("Setting target mode to %s (value: %s) for device %s", option, mode_value, self._device_id)
         
         # Envoyer la commande à l'API
         success = await self.hass.async_add_executor_job(
@@ -155,18 +155,18 @@ class GoodHomeTargetModeSelect(CoordinatorEntity, SelectEntity):
                     api_value = device["state"].get("targetMode")
                     if api_value == mode_value:
                         # État confirmé par l'API
-                        _LOGGER.info(f"Target mode {option} confirmed after {(attempt+1)*POLLING_INTERVAL}s")
+                        _LOGGER.info("Target mode %s confirmed after %ss", option, (attempt+1)*POLLING_INTERVAL)
                         self._optimistic_state = None
                         self.async_write_ha_state()
                         return
             
             # Après le timeout, abandonner l'état optimiste même sans confirmation
-            _LOGGER.warning(f"Target mode {option} not confirmed after {POLLING_MAX_ATTEMPTS*POLLING_INTERVAL}s, assuming success")
+            _LOGGER.warning("Target mode %s not confirmed after %ss, assuming success", option, POLLING_MAX_ATTEMPTS*POLLING_INTERVAL)
             self._optimistic_state = None
             self.async_write_ha_state()
         else:
             # Échec de la commande, revenir à l'état précédent
-            _LOGGER.error(f"Failed to set target mode to {option}")
+            _LOGGER.error("Failed to set target mode to %s", option)
             self._optimistic_state = None
             self.async_write_ha_state()
     

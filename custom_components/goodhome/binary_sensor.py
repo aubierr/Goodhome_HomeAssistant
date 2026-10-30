@@ -5,6 +5,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -26,8 +27,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 coordinator,
                 device,
                 "connectivity",
-                "Connectivity",
+                None,
                 BinarySensorDeviceClass.CONNECTIVITY,
+                EntityCategory.DIAGNOSTIC,
             )
         )
         # Self Learning Improve sensor (read-only status)
@@ -36,7 +38,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 coordinator,
                 device,
                 "self_learning_improve",
-                "Self Learning Improve",
+                "self_learning_improve",
                 None,
             )
         )
@@ -46,8 +48,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 coordinator,
                 device,
                 "problem",
-                "Problem",
+                None,
                 BinarySensorDeviceClass.PROBLEM,
+                EntityCategory.DIAGNOSTIC,
             )
         )
     
@@ -55,7 +58,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome binary sensor platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
+    coordinator = entry.runtime_data.coordinator
     
     devices = coordinator.data
     entities = []
@@ -67,8 +70,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 coordinator,
                 device,
                 "connectivity",
-                "Connectivity",
+                None,
                 BinarySensorDeviceClass.CONNECTIVITY,
+                EntityCategory.DIAGNOSTIC,
             )
         )
         # Self Learning Improve sensor (read-only status)
@@ -77,7 +81,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 coordinator,
                 device,
                 "self_learning_improve",
-                "Self Learning Improve",
+                "self_learning_improve",
                 None,
             )
         )
@@ -87,8 +91,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 coordinator,
                 device,
                 "problem",
-                "Problem",
+                None,
                 BinarySensorDeviceClass.PROBLEM,
+                EntityCategory.DIAGNOSTIC,
             )
         )
     
@@ -97,7 +102,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class GoodHomeBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Representation of a GoodHome Binary Sensor."""
     
-    def __init__(self, coordinator, device, sensor_type, translation_key, device_class):
+    def __init__(self, coordinator, device, sensor_type, translation_key, device_class, entity_category=None):
         """Initialize the binary sensor."""
         super().__init__(coordinator)
         self._device_id = device["id"]
@@ -107,6 +112,7 @@ class GoodHomeBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_has_entity_name = True
         self._attr_unique_id = f"goodhome_{device['id']}_{sensor_type}"
         self._attr_device_class = device_class
+        self._attr_entity_category = entity_category
         
     @property
     def device_info(self):

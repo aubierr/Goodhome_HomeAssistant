@@ -1,6 +1,7 @@
 """GoodHome Integration pour Home Assistant."""
 import logging
 import asyncio
+from dataclasses import dataclass
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -16,6 +17,18 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "goodhome"
 PLATFORMS = [Platform.CLIMATE, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.SELECT, Platform.NUMBER]
+
+
+@dataclass
+class GoodHomeData:
+    """Données d'exécution d'un compte GoodHome (entry.runtime_data)."""
+
+    coordinator: DataUpdateCoordinator
+    api: GoodHomeAPI
+
+
+type GoodHomeConfigEntry = ConfigEntry[GoodHomeData]
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the GoodHome component from yaml configuration."""
@@ -40,7 +53,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                     _LOGGER.error("GoodHome login failed: invalid credentials")
                     return False
             except GoodHomeConnectionError as err:
-                _LOGGER.error(f"GoodHome login failed: {err}")
+                _LOGGER.error("GoodHome login failed: %s", err)
                 return False
 
         async def async_update_data():
@@ -85,7 +98,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
     """Set up GoodHome from a config entry."""
     email = entry.data.get("email")
     password = entry.data.get("password")
@@ -125,11 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "api": api,
-    }
+    entry.runtime_data = GoodHomeData(coordinator=coordinator, api=api)
 
     if not hass.services.has_service(DOMAIN, "identify_device"):
         async def async_identify_device(call):
@@ -138,14 +147,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not device_id:
                 return
             # Trouver le compte (config entry) qui possède cet appareil
-            for entry_data in hass.data[DOMAIN].values():
-                if not isinstance(entry_data, dict) or "coordinator" not in entry_data:
+            for config_entry in hass.config_entries.async_entries(DOMAIN):
+                data = getattr(config_entry, "runtime_data", None)
+                if not isinstance(data, GoodHomeData):
                     continue
-                devices = entry_data["coordinator"].data or []
+                devices = data.coordinator.data or []
                 if any(device["id"] == device_id for device in devices):
-                    await hass.async_add_executor_job(entry_data["api"].identify_device, device_id)
+                    await hass.async_add_executor_job(data.api.identify_device, device_id)
                     return
-            _LOGGER.warning(f"GoodHome device {device_id} not found")
+            _LOGGER.warning("GoodHome device %s not found", device_id)
 
         hass.services.async_register(DOMAIN, "identify_device", async_identify_device)
 
@@ -153,11 +163,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

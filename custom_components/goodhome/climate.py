@@ -38,8 +38,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome climate platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
-    api = hass.data["goodhome"][entry.entry_id]["api"]
+    coordinator = entry.runtime_data.coordinator
+    api = entry.runtime_data.api
     
     devices = coordinator.data
     entities = []
@@ -70,7 +70,10 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._api = api
         self._device_id = device["id"]
-        self._attr_name = device["name"]
+        self._device_name = device["name"]
+        # Entité principale de l'appareil : elle porte le nom de l'appareil
+        self._attr_has_entity_name = True
+        self._attr_name = None
         self._attr_unique_id = f"goodhome_climate_{device['id']}"
         self._debounce_task = None
         self._pending_temperature = None
@@ -80,7 +83,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
     @property
     def device_info(self):
         """Return device info."""
-        return build_device_info(self.coordinator, self._device_id, self._attr_name)
+        return build_device_info(self.coordinator, self._device_id, self._device_name)
     
     @property
     def available(self):
@@ -113,12 +116,12 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             await self.coordinator.async_request_refresh()
             
             if check_function():
-                _LOGGER.debug(f"{description} confirmed after {attempt + 1} attempts")
+                _LOGGER.debug("%s confirmed after %s attempts", description, attempt + 1)
                 return True
             
-            _LOGGER.debug(f"Waiting for {description} confirmation... attempt {attempt + 1}/{POLLING_MAX_ATTEMPTS}")
+            _LOGGER.debug("Waiting for %s confirmation... attempt %s/%s", description, attempt + 1, POLLING_MAX_ATTEMPTS)
         
-        _LOGGER.warning(f"{description} confirmation timeout after {POLLING_MAX_ATTEMPTS} attempts, assuming success")
+        _LOGGER.warning("%s confirmation timeout after %s attempts, assuming success", description, POLLING_MAX_ATTEMPTS)
         return False
     
     @property
@@ -286,7 +289,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
             # Envoyer la requête
             if self._pending_temperature is not None:
                 temp_to_set = self._pending_temperature
-                _LOGGER.debug(f"Setting temperature to {temp_to_set} after debounce")
+                _LOGGER.debug("Setting temperature to %s after debounce", temp_to_set)
                 
                 await self.hass.async_add_executor_job(
                     self._api.set_override_temperature, self._device_id, temp_to_set

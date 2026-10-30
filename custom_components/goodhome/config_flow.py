@@ -23,10 +23,10 @@ async def _async_validate_login(hass, email, password):
             return None
         return "invalid_auth"
     except GoodHomeConnectionError as e:
-        _LOGGER.error(f"Cannot connect to GoodHome: {e}")
+        _LOGGER.error("Cannot connect to GoodHome: %s", e)
         return "cannot_connect"
     except Exception as e:
-        _LOGGER.exception(f"Unexpected error during login: {e}")
+        _LOGGER.exception("Unexpected error during login: %s", e)
         return "unknown"
 
 

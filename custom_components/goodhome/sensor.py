@@ -43,7 +43,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 "target_temp",
                 UnitOfTemperature.CELSIUS,
                 SensorDeviceClass.TEMPERATURE,
-                SensorStateClass.MEASUREMENT,
+                None,
             )
         )
         # Humidity sensor
@@ -149,7 +149,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GoodHome sensor platform (config entry)."""
-    coordinator = hass.data["goodhome"][entry.entry_id]["coordinator"]
+    coordinator = entry.runtime_data.coordinator
     
     devices = coordinator.data
     entities = []
@@ -176,7 +176,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 "target_temp",
                 UnitOfTemperature.CELSIUS,
                 SensorDeviceClass.TEMPERATURE,
-                SensorStateClass.MEASUREMENT,
+                None,
             )
         )
         # Humidity sensor

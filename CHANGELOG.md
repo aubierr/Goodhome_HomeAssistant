@@ -13,6 +13,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 🐛 Un échec de connexion au démarrage était ignoré (l'intégration continuait sans token)
 - 🐛 Suppression du flux d'options vide, incompatible avec les versions récentes de Home Assistant
 - 🐛 La plateforme Select plantait en configuration YAML
+- 🐛 Les binary sensors utilisaient des clés de traduction invalides (« Connectivity », « Self Learning Improve »)
+- 🐛 Les logs des switches et des numbers affichaient `None` au lieu du nom de l'entité, et un délai de 30 s au lieu de 40 s
 
 ### Ajouté
 - 🔐 Réauthentification depuis l'interface quand le mot de passe est refusé
@@ -27,6 +29,11 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 📦 Suppression de la dépendance `requests` du manifest (fournie par Home Assistant)
 - 🧹 `hacs.json` : suppression de la clé `domains` dépréciée, ajout de la version minimale de Home Assistant
 - 🧹 Import de `EntityCategory` depuis `homeassistant.const`
+- 🏷️ Le thermostat utilise `has_entity_name` : il porte le nom de l'appareil (nom affiché inchangé)
+- 🩺 Les binary sensors Connectivité et Problème passent en catégorie Diagnostic
+- 📉 Le sensor Température cible n'enregistre plus de statistiques long terme (valeur de consigne, pas une mesure)
+- 🧹 Données d'exécution stockées dans `entry.runtime_data` au lieu de `hass.data`
+- 🧹 Logs au format paresseux `%s` au lieu des f-strings
 
 ## [1.0.0] - 2025-11-11
 

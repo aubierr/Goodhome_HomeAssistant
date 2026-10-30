@@ -86,7 +86,7 @@ class GoodHomeAPI:
         except requests.HTTPError as e:
             # 4xx = identifiants refusés, le reste = problème côté serveur
             if e.response is not None and e.response.status_code in (400, 401, 403):
-                _LOGGER.error(f"Login rejected: {e}")
+                _LOGGER.error("Login rejected: %s", e)
                 return False
             raise GoodHomeConnectionError(f"Error during login: {e}") from e
         except requests.RequestException as e:
@@ -127,7 +127,7 @@ class GoodHomeAPI:
             return self.login()
             
         except Exception as e:
-            _LOGGER.error(f"Error refreshing token: {e}, attempting full login")
+            _LOGGER.error("Error refreshing token: %s, attempting full login", e)
             return self.login()
         
     def _generate_t_param(self):
@@ -179,7 +179,7 @@ class GoodHomeAPI:
             return False
             
         except Exception as e:
-            _LOGGER.error(f"Error connecting to Socket.io: {e}")
+            _LOGGER.error("Error connecting to Socket.io: %s", e)
             return False
     
     def _get_headers(self):
@@ -322,7 +322,7 @@ class GoodHomeAPI:
             return result
             
         except Exception as e:
-            _LOGGER.error(f"Error getting device: {e}")
+            _LOGGER.error("Error getting device: %s", e)
             return None
     
     def _invalidate_cache(self, device_id=None):
@@ -379,11 +379,11 @@ class GoodHomeAPI:
             
             response.raise_for_status()
             
-            _LOGGER.info(f"Set temperature {temperature} for device {device_id}")
+            _LOGGER.info("Set temperature %s for device %s", temperature, device_id)
             return True
             
         except Exception as e:
-            _LOGGER.error(f"Error setting temperature: {e}")
+            _LOGGER.error("Error setting temperature: %s", e)
             return False
     
     def set_mode(self, device_id, mode):
@@ -422,11 +422,11 @@ class GoodHomeAPI:
             
             response.raise_for_status()
             
-            _LOGGER.info(f"Set mode {mode} for device {device_id}")
+            _LOGGER.info("Set mode %s for device %s", mode, device_id)
             return True
             
         except Exception as e:
-            _LOGGER.error(f"Error setting mode: {e}")
+            _LOGGER.error("Error setting mode: %s", e)
             return False
     
     def identify_device(self, device_id):
@@ -462,11 +462,11 @@ class GoodHomeAPI:
             
             response.raise_for_status()
             
-            _LOGGER.info(f"Identified device {device_id} (ping)")
+            _LOGGER.info("Identified device %s (ping)", device_id)
             return True
             
         except Exception as e:
-            _LOGGER.error(f"Error identifying device: {e}")
+            _LOGGER.error("Error identifying device: %s", e)
             return False
     
     def set_parameter(self, device_id, parameter_name, value):
@@ -506,11 +506,11 @@ class GoodHomeAPI:
             
             response.raise_for_status()
             
-            _LOGGER.info(f"Set parameter {parameter_name}={value} for device {device_id}")
+            _LOGGER.info("Set parameter %s=%s for device %s", parameter_name, value, device_id)
             return True
             
         except Exception as e:
-            _LOGGER.error(f"Error setting parameter {parameter_name}: {e}")
+            _LOGGER.error("Error setting parameter %s: %s", parameter_name, e)
             return False
     
     def set_temperature(self, device_id, temp_type, temperature):
@@ -549,9 +549,9 @@ class GoodHomeAPI:
             
             response.raise_for_status()
             
-            _LOGGER.info(f"Set temperature {temp_type}={temperature}°C for device {device_id}")
+            _LOGGER.info("Set temperature %s=%s°C for device %s", temp_type, temperature, device_id)
             return True
             
         except Exception as e:
-            _LOGGER.error(f"Error setting temperature {temp_type}: {e}")
+            _LOGGER.error("Error setting temperature %s: %s", temp_type, e)
             return False
