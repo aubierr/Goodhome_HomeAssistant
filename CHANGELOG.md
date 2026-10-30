@@ -16,6 +16,9 @@ Les identifiants des entités ne changent pas : historiques, tableaux de bord et
 - 🔌 Le capteur Consommation passe à « inconnu » au lieu de 0 W quand la puissance nominale ou la part de chauffe est inconnue
 - 📊 Le capteur Cycle de chauffe n'a plus la classe « facteur de puissance », qui ne correspondait pas à la mesure
 
+### Corrigé
+- 🖼️ L'icône de l'intégration s'affiche de nouveau (« Icon not available ») : depuis 2026, Home Assistant lit les images d'une intégration personnalisée dans son dossier `brand/`
+
 ### Ajouté
 - 🔘 Bouton Identifier sur chaque radiateur (fait biper le radiateur, comme le service `goodhome.identify_device`)
 - 🩺 Diagnostics téléchargeables, sans email, mot de passe, identifiants ni noms de pièces
