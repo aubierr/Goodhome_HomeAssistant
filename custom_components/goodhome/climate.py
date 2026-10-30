@@ -114,7 +114,7 @@ class GoodHomeClimate(CoordinatorEntity, ClimateEntity):
         """
         for attempt in range(POLLING_MAX_ATTEMPTS):
             await asyncio.sleep(POLLING_INTERVAL)
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_refresh()
             
             if check_function():
                 _LOGGER.debug("%s confirmed after %s attempts", description, attempt + 1)

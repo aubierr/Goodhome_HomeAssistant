@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.helpers import discovery
 from homeassistant.helpers.device_registry import DeviceEntry
 
+from .const import UPDATE_INTERVAL
 from .goodhome_api import GoodHomeAPI, GoodHomeAuthError, GoodHomeConnectionError, GoodHomeError
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             _LOGGER,
             name="goodhome",
             update_method=async_update_data,
-            update_interval=timedelta(seconds=60),
+            update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
 
         # Pour une configuration YAML, utiliser async_refresh au lieu de async_config_entry_first_refresh
@@ -134,7 +135,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
         name="goodhome",
         config_entry=entry,
         update_method=async_update_data,
-        update_interval=timedelta(seconds=60),
+        update_interval=timedelta(seconds=UPDATE_INTERVAL),
     )
 
     await coordinator.async_config_entry_first_refresh()

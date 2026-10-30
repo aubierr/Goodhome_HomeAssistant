@@ -202,7 +202,7 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
                 # Faire plusieurs tentatives pour confirmer le changement
                 for attempt in range(POLLING_MAX_ATTEMPTS):
                     await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_request_refresh()
+                    await self.coordinator.async_refresh()
                     
                     # Vérifier si l'état de l'API correspond à notre commande
                     device = self._get_device()
@@ -251,7 +251,7 @@ class GoodHomeSwitch(CoordinatorEntity, SwitchEntity):
                 # Faire plusieurs tentatives pour confirmer le changement
                 for attempt in range(POLLING_MAX_ATTEMPTS):
                     await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_request_refresh()
+                    await self.coordinator.async_refresh()
                     
                     # Vérifier si l'état de l'API correspond à notre commande
                     device = self._get_device()

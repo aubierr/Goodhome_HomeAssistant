@@ -37,6 +37,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - 📉 Le sensor Température cible n'enregistre plus de statistiques long terme (valeur de consigne, pas une mesure)
 - 🧹 Données d'exécution stockées dans `entry.runtime_data` au lieu de `hass.data`
 - 🧹 Logs au format paresseux `%s` au lieu des f-strings
+- ⏱️ Relecture de l'API toutes les 30 s au lieu de 60 s
+- ⏱️ Après une commande, la confirmation relit vraiment l'API toutes les 5 s (elle était limitée à une relecture toutes les 10 s par l'anti-rafale du coordinator)
 - 🚀 La lecture des radiateurs ne fait plus de poignée de main Socket.io : 1 requête HTTP par cycle au lieu de 3 (testé sur l'API réelle)
 
 ## [1.0.0] - 2025-11-11

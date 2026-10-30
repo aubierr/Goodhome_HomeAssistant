@@ -178,7 +178,7 @@ class GoodHomeTemperatureNumber(CoordinatorEntity, NumberEntity):
                 # Polling pour confirmer le changement
                 for attempt in range(POLLING_MAX_ATTEMPTS):
                     await asyncio.sleep(POLLING_INTERVAL)
-                    await self.coordinator.async_request_refresh()
+                    await self.coordinator.async_refresh()
                     
                     device = self._get_device()
                     if device and device.get("state"):
