@@ -14,7 +14,7 @@ Chaque mode fait chauffer le radiateur vers l'une de ces températures (champ `t
 |-----------|-----------------------|------|
 | `comfTemp` | `number.xxx_comfort_temperature` | Confort, périodes de présence |
 | `ecoTemp` | `number.xxx_eco_temperature` | Économie, périodes d'absence et absence courte |
-| `antifTemp` | `number.xxx_antifreeze_temperature` | Hors-gel, OFF et absence longue |
+| `antifTemp` | `number.xxx_frost_protection_temperature` | Hors-gel, OFF et absence longue |
 | `overrideTemp` | consigne de `climate.xxx` | Consigne libre (« override ») |
 
 ## Liste des modes `targetMode`
@@ -65,7 +65,7 @@ Ces interrupteurs ne sont pas des valeurs de `targetMode`, mais ils changent la 
 |-----------|--------|-------|
 | `noprog` | `switch.xxx_manual_mode` | Activé : mode manuel, pas de planning. Désactivé : planning auto (modes 9/10/60/61). |
 | `selfLearning` | `switch.xxx_self_learning` | Auto-apprentissage du planning (exige `occupancyStatus`). `selfLearningImprove` indique la fin de l'apprentissage. |
-| `occupancyStatus` | `switch.xxx_presence_sensor` | Prise en compte du détecteur de présence (mode 30). |
+| `occupancyStatus` | `switch.xxx_presence_detection` | Prise en compte du détecteur de présence (mode 30). |
 | `window` | `switch.xxx_open_window_detection` | Coupe la chauffe pendant `windowTimeOut` minutes quand une fenêtre ouverte est détectée. Pas de valeur `targetMode` dédiée. |
 
 ## Correspondance avec l'entité `climate`

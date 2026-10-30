@@ -69,6 +69,9 @@ class GoodHomePushClient:
                     _LOGGER.debug("GoodHome push: token renewal failed (%s)", renew_err)
             except (aiohttp.ClientError, asyncio.TimeoutError, GoodHomePushSessionLost, ValueError) as err:
                 _LOGGER.debug("GoodHome push: connection lost (%s), reconnecting in %ss", err, delay)
+            except Exception:
+                # Réponse inattendue du serveur : l'écoute ne doit jamais s'arrêter
+                _LOGGER.exception("GoodHome push: unexpected error, reconnecting in %ss", delay)
 
             # Une session qui a tenu longtemps remet le délai de reconnexion à zéro
             if time.monotonic() - started > RECONNECT_MAX_DELAY:
@@ -135,4 +138,8 @@ class GoodHomePushClient:
                 _LOGGER.debug("GoodHome push: invalid event %s", packet)
                 continue
             if isinstance(event, list) and event and isinstance(event[0], str):
-                self._on_event(event[0], event[1] if len(event) > 1 else None)
+                try:
+                    self._on_event(event[0], event[1] if len(event) > 1 else None)
+                except Exception:
+                    # Erreur côté Home Assistant : garder la session pour les événements suivants
+                    _LOGGER.exception("GoodHome push: error while handling %s", event[0])

@@ -65,7 +65,7 @@ La configuration par `configuration.yaml` n'est plus prise en charge depuis la v
 
 ## 📱 Entités créées
 
-Pour chaque thermostat GoodHome, les entités suivantes sont créées :
+Pour chaque thermostat GoodHome, les entités suivantes sont créées. Les identifiants indiqués sont ceux d'une nouvelle installation, où `xxx` est le nom du radiateur ; une installation mise à jour depuis la version 1 garde ses identifiants d'origine.
 
 ### Climate
 - `climate.xxx` - Contrôle du thermostat
@@ -80,23 +80,23 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
     - `temperature_color` : Code couleur pour l'interface
 
 ### Sensors
-- `sensor.xxx_temperature` - Température actuelle
+- `sensor.xxx_current_temperature` - Température actuelle
 - `sensor.xxx_target_temperature` - Température cible
 - `sensor.xxx_humidity` - Humidité
-- `sensor.xxx_duty_cycle` - Cycle de chauffe (%)
+- `sensor.xxx_heating_power` - Cycle de chauffe (%)
 - `sensor.xxx_power_consumption` - Consommation électrique calculée (W)
-- `sensor.xxx_comfort_temp` / `eco_temp` / `antifreeze_temp` - Températures confort, éco et hors-gel (doublons des entités Number, désactivés par défaut sur les nouvelles installations)
+- `sensor.xxx_comfort_temperature` / `eco_temperature` / `frost_protection_temperature` - Températures confort, éco et hors-gel (doublons des entités Number, désactivés par défaut sur les nouvelles installations)
 - `sensor.xxx_self_learning_days` - Jours d'apprentissage (0-14)
-- `sensor.xxx_device_info` - Informations appareil (diagnostic)
+- `sensor.xxx_device_information` - Informations appareil (diagnostic)
 
 ### Binary Sensors
 - `binary_sensor.xxx_connectivity` - État de connexion
-- `binary_sensor.xxx_self_learning_improve` - Amélioration auto-apprentissage
+- `binary_sensor.xxx_self_learning_improvement` - Amélioration auto-apprentissage
 - `binary_sensor.xxx_problem` - Détection de problème
 
 ### Switches
 - `switch.xxx_open_window_detection` - Détection fenêtre ouverte
-- `switch.xxx_presence_sensor` - Détecteur de présence
+- `switch.xxx_presence_detection` - Détection de présence
 - `switch.xxx_self_learning` - Mode auto-apprentissage
 - `switch.xxx_manual_mode` - Mode manuel (noprog)
 
@@ -113,7 +113,7 @@ Pour chaque thermostat GoodHome, les entités suivantes sont créées :
 ### Number
 - `number.xxx_comfort_temperature` - Température confort (7-30°C, pas de 0.5°C)
 - `number.xxx_eco_temperature` - Température éco (7-30°C, pas de 0.5°C)
-- `number.xxx_antifreeze_temperature` - Température hors-gel (7-30°C, pas de 0.5°C)
+- `number.xxx_frost_protection_temperature` - Température hors-gel (7-30°C, pas de 0.5°C)
 
 ### Button
 - `button.xxx_identify` - Fait biper le radiateur pour le localiser
@@ -254,7 +254,7 @@ uv pip install --python .venv -r requirements_test.txt
 .venv/Scripts/python -m pytest --cov=custom_components.goodhome   # Windows ; .venv/bin/python sous Linux
 ```
 
-Les tests utilisent un vrai Home Assistant avec une API GoodHome simulée, et fonctionnent sous Linux comme sous Windows. Ils tournent aussi sur GitHub Actions, avec les validations hassfest et HACS.
+Les tests utilisent un vrai Home Assistant avec une API GoodHome simulée. Avec les versions figées de `requirements_test.txt` (Home Assistant 2025.1), ils fonctionnent sous Linux comme sous Windows ; les versions plus récentes de Home Assistant ne s'exécutent plus sous Windows. Sur GitHub Actions, ils tournent avec la 2025.1 et avec la dernière version, en plus des validations hassfest et HACS.
 
 Les contributions sont les bienvenues ! N'hésitez pas à :
 - Ouvrir une issue pour signaler un bug

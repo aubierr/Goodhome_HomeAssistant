@@ -1,11 +1,21 @@
 """Tests du client API GoodHome."""
+import aiohttp
 import pytest
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
 
 from custom_components.goodhome.goodhome_api import GoodHomeAuthError, GoodHomeClient
 
-from .conftest import DEVICE_ID, DEVICES_RESPONSE, DEVICES_URL, LOGIN_URL, REFRESH_URL, USER_ID
+from .conftest import (
+    DEVICE_ID,
+    DEVICES_RESPONSE,
+    DEVICES_URL,
+    LOGIN_URL,
+    REFRESH_URL,
+    SOCKETIO_URL,
+    STATE_URL,
+    USER_ID,
+)
 
 
 async def _logged_in_client(hass, aioclient_mock):
@@ -68,3 +78,16 @@ async def test_token_still_refused_raises(hass, aioclient_mock):
     aioclient_mock.get(DEVICES_URL, status=401)
     with pytest.raises(GoodHomeAuthError):
         await client.async_get_devices()
+
+
+@pytest.mark.parametrize("socketio", [{"status": 503}, {"exc": aiohttp.ClientError()}])
+async def test_command_is_sent_when_socketio_handshake_fails(hass, aioclient_mock, socketio):
+    """La poignée de main ne fait qu'accélérer la commande : son échec ne l'empêche pas."""
+    client = await _logged_in_client(hass, aioclient_mock)
+    aioclient_mock.get(SOCKETIO_URL, **socketio)
+    aioclient_mock.patch(STATE_URL, json={})
+
+    await client.async_set_state(DEVICE_ID, {"targetMode": 9})
+
+    assert aioclient_mock.mock_calls[-1][0].upper() == "PATCH"
+    assert aioclient_mock.mock_calls[-1][2] == {"parameters": {"targetMode": 9}}

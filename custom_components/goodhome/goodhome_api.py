@@ -124,8 +124,12 @@ class GoodHomeClient:
     async def async_set_state(self, device_id, parameters):
         """Envoyer des paramètres à un radiateur (ex. {"targetMode": 9})."""
         # Sans cette poignée de main, le radiateur applique la commande plus tard
-        # (mesuré : 66 s avec, 130 s sans ; le délai restant vient du radiateur)
-        await self._async_socketio_handshake()
+        # (mesuré : 66 s avec, 130 s sans ; le délai restant vient du radiateur).
+        # Simple accélération : si elle échoue, la commande est envoyée quand même
+        try:
+            await self._async_socketio_handshake()
+        except GoodHomeConnectionError as err:
+            _LOGGER.debug("%s, sending the command anyway", err)
         await self._request_json("PATCH", f"/v1/devices/{device_id}/state", json={"parameters": parameters})
         _LOGGER.debug("Sent %s to device %s", parameters, device_id)
 

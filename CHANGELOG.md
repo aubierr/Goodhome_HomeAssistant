@@ -18,6 +18,9 @@ Les identifiants des entités ne changent pas : historiques, tableaux de bord et
 
 ### Corrigé
 - 🕒 Choisir « Auto Confort » ou « Auto Éco » n'affiche plus d'avertissement de non-confirmation : le radiateur passe en automatique et son planning choisit lui-même confort ou éco
+- 📨 Une commande n'échoue plus quand la poignée de main Socket.io qui la précède échoue : elle ne fait qu'accélérer l'application par le radiateur
+- ⚡ Une réponse inattendue du serveur ou une erreur en traitant un événement n'arrête plus l'écoute temps réel : l'erreur est journalisée et l'écoute continue
+- 📝 Identifiants d'entités du README corrigés pour les nouvelles installations (ex. `sensor.xxx_current_temperature`, `switch.xxx_presence_detection`)
 - 🖼️ L'icône de l'intégration s'affiche de nouveau (« Icon not available ») : depuis 2026, Home Assistant lit les images d'une intégration personnalisée dans son dossier `brand/`
 
 ### Ajouté
@@ -26,7 +29,7 @@ Les identifiants des entités ne changent pas : historiques, tableaux de bord et
 - 🔘 Bouton Identifier sur chaque radiateur (fait biper le radiateur, comme le service `goodhome.identify_device`)
 - 🩺 Diagnostics téléchargeables, sans email, mot de passe, identifiants ni noms de pièces
 - ❌ Une commande refusée par le cloud fait échouer l'action avec un message clair, au lieu d'une simple ligne de journal
-- 🧪 Tests automatisés (63 tests, 93 % du code) sur un vrai Home Assistant avec une API simulée, et intégration continue GitHub (hassfest, HACS, tests)
+- 🧪 Tests automatisés (78 tests, 94 % du code) sur un vrai Home Assistant avec une API simulée, et intégration continue GitHub (hassfest, HACS, tests)
 
 ### Modifié
 - ⚙️ Client API entièrement asynchrone, sur la session HTTP de Home Assistant (plus de `requests` dans des threads)
