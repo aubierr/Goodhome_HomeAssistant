@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.1] - 2026-10-31
+
+### Corrigé
+- 🌡️ Un arrêt, le planning ou un preset choisi dans les 3 s qui suivent un changement de consigne n'est plus remplacé par cette consigne (mode 8) : le dernier choix l'emporte
+
 ## [2.1.0] - 2026-10-30
 
 Aucun attribut n'est retiré : ils restent tous disponibles pour le débogage, et de nouveaux s'y ajoutent.

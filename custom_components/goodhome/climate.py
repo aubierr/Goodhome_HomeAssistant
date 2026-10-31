@@ -90,6 +90,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         """Initialiser le thermostat."""
         super().__init__(coordinator, device_id, f"goodhome_climate_{device_id}")
         self._debounce_task = None
+        self._sending_temperature = False  # Anti-rebond terminé, commande de consigne en cours d'envoi
         self._last_on_mode = None  # Dernier mode confirmé hors arrêt, rétabli par turn_on
 
     async def async_added_to_hass(self):
@@ -203,8 +204,9 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         try:
             await asyncio.sleep(DEBOUNCE_DELAY)
         except asyncio.CancelledError:
-            # Remplacée par une consigne plus récente
+            # Remplacée par une consigne plus récente ou par un changement de mode
             return
+        self._sending_temperature = True
         try:
             await self.async_send_state(
                 {"overrideTemp": temperature, "targetMode": MODE_OVERRIDE}, display={"targetTemp": temperature}
@@ -214,9 +216,29 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
             _LOGGER.error("Could not set %s to %s°C: %s", self.entity_id, temperature, err)
             self._pending.pop("targetTemp", None)
             self.async_write_ha_state()
+        finally:
+            self._sending_temperature = False
+
+    async def _async_cancel_temperature(self):
+        """Abandonner la consigne en attente : le mode choisi ensuite l'emporte.
+
+        Sans cela, la consigne envoyée après l'anti-rebond (mode 8) remplacerait
+        un arrêt, le planning ou un preset choisi pendant ces quelques secondes.
+        """
+        task, self._debounce_task = self._debounce_task, None
+        if task is None or task.done():
+            return
+        if self._sending_temperature:
+            # Déjà partie : attendre la fin de l'envoi pour que le mode arrive après
+            await task
+            return
+        task.cancel()
+        self._pending.pop("targetTemp", None)
+        self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode):
         """Arrêter (hors-gel manuel), chauffer (confort manuel) ou suivre le planning."""
+        await self._async_cancel_temperature()
         if hvac_mode == HVACMode.AUTO:
             # Le planning peut choisir 61 ou 30 au lieu de 60 : tout mode auto confirme
             await self.async_send_state({"targetMode": MODE_AUTO}, confirmed=is_auto_mode)
@@ -227,6 +249,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         """Rallumer dans le mode d'avant l'arrêt : planning, mode manuel, sinon confort manuel."""
         if self.hvac_mode != HVACMode.OFF:
             return
+        await self._async_cancel_temperature()
         if self._last_on_mode in SCHEDULE_MODES:
             await self.async_set_hvac_mode(HVACMode.AUTO)
         elif self._last_on_mode in RESTORED_MANUAL_MODES:
@@ -241,4 +264,5 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str):
         """Appliquer un preset."""
+        await self._async_cancel_temperature()
         await self.async_send_state({"targetMode": PRESET_TO_MODE.get(preset_mode, MODE_HEAT)})

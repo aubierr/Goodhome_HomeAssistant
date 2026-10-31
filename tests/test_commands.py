@@ -1,4 +1,5 @@
 """Tests des commandes : valeur envoyée, affichage immédiat et confirmation."""
+import asyncio
 from datetime import timedelta
 
 import pytest
@@ -75,6 +76,58 @@ async def test_temperature_is_debounced(hass, setup_integration, mock_api):
     push(setup_integration, overrideTemp=20.5, targetTemp=20.5, targetMode=8)
     await hass.async_block_till_done()
     assert hass.states.get(climate).attributes["temperature"] == 20.5
+
+
+@pytest.mark.parametrize(
+    ("service", "data", "mode"),
+    [
+        ("turn_off", {}, 3),
+        ("set_hvac_mode", {"hvac_mode": "auto"}, 60),
+        ("set_preset_mode", {"preset_mode": "eco"}, 10),
+    ],
+)
+async def test_mode_change_cancels_debounced_temperature(hass, setup_integration, mock_api, service, data, mode):
+    """Le mode choisi pendant l'anti-rebond l'emporte sur la consigne pas encore envoyée."""
+    climate = entity_id(hass, "climate", f"goodhome_climate_{D}")
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": climate, "temperature": 21}, blocking=True
+    )
+    await hass.services.async_call("climate", service, {"entity_id": climate, **data}, blocking=True)
+    # La consigne abandonnée n'est plus affichée
+    assert hass.states.get(climate).attributes["temperature"] == 19
+
+    await advance(hass, DEBOUNCE_DELAY + 1)
+    assert sent_parameters(mock_api) == [{"targetMode": mode}]
+
+
+async def test_mode_change_waits_for_temperature_being_sent(hass, setup_integration):
+    """Consigne déjà en cours d'envoi : le mode part après elle, pas en même temps."""
+    climate = entity_id(hass, "climate", f"goodhome_climate_{D}")
+    client = setup_integration.runtime_data.coordinator.client
+    sent, release = [], asyncio.Event()
+
+    async def slow_set_state(device_id, parameters):
+        sent.append(parameters)
+        if parameters.get("targetMode") == 8:
+            await release.wait()
+
+    client.async_set_state = slow_set_state
+    await hass.services.async_call(
+        "climate", "set_temperature", {"entity_id": climate, "temperature": 21}, blocking=True
+    )
+    await advance(hass, DEBOUNCE_DELAY + 1)
+    assert sent == [{"overrideTemp": 21, "targetMode": 8}]
+
+    turn_off = hass.async_create_task(
+        hass.services.async_call("climate", "turn_off", {"entity_id": climate}, blocking=True)
+    )
+    for _ in range(20):
+        await asyncio.sleep(0)
+    assert not turn_off.done()
+    assert len(sent) == 1
+    release.set()
+    await turn_off
+    assert sent == [{"overrideTemp": 21, "targetMode": 8}, {"targetMode": 3}]
 
 
 async def test_failed_command_raises_and_reverts(hass, config_entry, aioclient_mock):
