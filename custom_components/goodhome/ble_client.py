@@ -30,6 +30,7 @@ from .ble import (
     build_system_command,
     from_radiator,
     split_chunks,
+    complete_mode_change,
 )
 from .goodhome_api import GoodHomeError
 
@@ -97,28 +98,85 @@ async def async_list_radiators(hass: HomeAssistant) -> dict[str, str]:
     return radiators
 
 
-async def _async_wait_device(hass: HomeAssistant, address: str, name: str | None, timeout: float = DEVICE_WAIT):
-    """Appareil Bluetooth du radiateur d'après sa dernière annonce récente, sous son adresse ou son nom.
+def _advertised_name(info) -> str | None:
+    """Nom présent dans l'annonce elle-même (et non le nom gardé en mémoire par BlueZ)."""
+    return getattr(getattr(info, "advertisement", None), "local_name", None)
 
-    Seule une annonce récente compte : BlueZ garde aussi le nom d'un ancien appairage sur
-    une adresse que le radiateur n'utilise plus.
+
+def _bluez_address(info) -> str | None:
+    """Adresse actuelle de l'appareil selon BlueZ (propriétés jointes à l'annonce ou à l'appareil)."""
+    platform = getattr(getattr(info, "advertisement", None), "platform_data", None)
+    props = platform[1] if isinstance(platform, tuple) and len(platform) > 1 else None
+    if not isinstance(props, dict):
+        details = getattr(getattr(info, "device", None), "details", None)
+        props = details.get("props") if isinstance(details, dict) else None
+    address = props.get("Address") if isinstance(props, dict) else None
+    return str(address).upper() if address else None
+
+
+def _is_at(info, address: str) -> bool:
+    """Annonce de l'appareil à cette adresse, rangée sous cette adresse ou sous une ancienne."""
+    return info.address.upper() == address.upper() or _bluez_address(info) == address.upper()
+
+
+@callback
+def _async_fresh_device(
+    hass: HomeAssistant, address: str, name: str | None, *, since: float | None = None, exclude: frozenset = frozenset()
+):
+    """Appareil d'après la dernière annonce récente du radiateur, None s'il n'en a pas envoyé.
+
+    Avec un nom GOODHOME-XXXX (appairage), seul le nom présent dans l'annonce compte : en mode
+    appairage, le radiateur s'annonce sous une nouvelle adresse aléatoire avec son nom, alors que
+    BlueZ garde ce nom sur l'adresse d'un ancien appairage que le radiateur n'utilise plus.
+
+    Sinon, l'adresse fixe du radiateur appairé. Bleak garde chaque appareil BlueZ sous l'adresse
+    vue la première fois : juste après l'appairage, c'est l'adresse aléatoire du mode appairage,
+    même quand BlueZ est passé à l'adresse fixe. Home Assistant range alors les annonces sous
+    l'ancienne adresse et ne trouve aucun récepteur pour l'adresse fixe (« no scanner currently
+    has it ») jusqu'à son redémarrage. L'entrée sous l'ancienne adresse pointe vers le bon chemin
+    BlueZ : elle est reconnue par l'adresse BlueZ jointe à l'annonce, et préférée pour se connecter.
+
+    since / exclude (appairage) : ignorer les annonces d'avant l'oubli de l'ancien appairage, et
+    l'adresse oubliée. BlueZ joint aussi le nom gardé en mémoire aux annonces relayées : sans cela,
+    une dernière annonce de l'ancienne adresse fixe passerait pour celle du mode appairage.
     """
     from homeassistant.components import bluetooth
 
+    by_name = bool(name) and name.upper().startswith(LOCAL_NAME_PREFIX)
+    now = time.monotonic()
+    fresh = [
+        info
+        for info in bluetooth.async_discovered_service_info(hass, connectable=True)
+        if (_advertised_name(info) == name if by_name else _is_at(info, address))
+        and now - info.time < FRESH_ADVERTISEMENT
+        and (since is None or info.time >= since)
+        and info.address.upper() not in exclude
+    ]
+    if not fresh:
+        return None
+    best = max(fresh, key=lambda info: (info.address.upper() != address.upper(), info.time))
+    if best.address.upper() != address.upper() and not by_name:
+        _LOGGER.debug("Radiator %s known by Bleak as %s, connecting through it", address, best.address)
+    return best.device
+
+
+async def _async_wait_device(
+    hass: HomeAssistant,
+    address: str,
+    name: str | None,
+    timeout: float = DEVICE_WAIT,
+    *,
+    since: float | None = None,
+    exclude: frozenset = frozenset(),
+):
+    """Attendre une annonce récente du radiateur (voir _async_fresh_device)."""
     loop = asyncio.get_running_loop()
     deadline = loop.time() + timeout
-    while True:
-        now = time.monotonic()
-        fresh = [
-            info
-            for info in bluetooth.async_discovered_service_info(hass, connectable=True)
-            if (info.address == address or (name and info.name == name)) and now - info.time < FRESH_ADVERTISEMENT
-        ]
-        if fresh:
-            return max(fresh, key=lambda info: info.time).device
+    while (device := _async_fresh_device(hass, address, name, since=since, exclude=exclude)) is None:
         if loop.time() >= deadline:
             raise GoodHomeBleNotFound(f"Radiator {name or address} not seen over Bluetooth recently")
         await asyncio.sleep(1)
+    return device
 
 
 async def _async_forget(*addresses: str, name: str | None) -> None:
@@ -132,7 +190,7 @@ async def _async_forget(*addresses: str, name: str | None) -> None:
             _LOGGER.debug("Forgot previous Bluetooth pairing of %s", name or address)
 
 
-async def _async_pair_once(hass: HomeAssistant, device) -> tuple[str, str, dict[str, Any]]:
+async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tuple[str, str, dict[str, Any]]:
     from bleak.exc import BleakError
     from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
@@ -143,7 +201,11 @@ async def _async_pair_once(hass: HomeAssistant, device) -> tuple[str, str, dict[
         # avant la fin de la découverte des services. L'agent accepte la confirmation demandée.
         async with PairingAgent(device.address):
             bleak_client = await establish_connection(
-                BleakClientWithServiceCache, device, device.name or device.address, max_attempts=3, pair=True
+                BleakClientWithServiceCache,
+                device,
+                name or device.address,
+                max_attempts=3,
+                pair=True,
             )
     except (BleakError, TimeoutError, OSError) as err:
         if any(text in str(err) for text in REJECTED_ERRORS):
@@ -170,11 +232,14 @@ async def async_pair_radiator(
     hass: HomeAssistant, address: str, name: str | None = None
 ) -> tuple[str, str, dict[str, Any]]:
     """Appairer un radiateur en mode appairage ; renvoie adresse fixe, numéro de série et état."""
-    # Repartir d'un appairage neuf : une clé d'un essai précédent bloque tout nouvel appairage
+    # Repartir d'un appairage neuf : une clé d'un essai précédent bloque tout nouvel appairage.
+    # Ensuite, seule une annonce reçue après l'oubli compte, et jamais à l'adresse oubliée.
     await _async_forget(address, name=name)
-    device = await _async_wait_device(hass, address, name)
+    exclude = frozenset({address.upper()})
+    since = time.monotonic()
+    device = await _async_wait_device(hass, address, name, since=since, exclude=exclude)
     try:
-        return await _async_pair_once(hass, device)
+        return await _async_pair_once(hass, device, name)
     except GoodHomeBlePairingRejected:
         raise
     except GoodHomeBleError as err:
@@ -183,8 +248,8 @@ async def async_pair_radiator(
         # Clé que le radiateur n'a plus (créée pendant cet essai) : l'oublier et recommencer
         _LOGGER.info("Stale Bluetooth pairing for %s (%s), pairing again from scratch", name or address, err)
         await _async_forget(address, device.address, name=name)
-    device = await _async_wait_device(hass, address, name)
-    return await _async_pair_once(hass, device)
+    device = await _async_wait_device(hass, address, name, since=time.monotonic(), exclude=exclude)
+    return await _async_pair_once(hass, device, name)
 
 
 class GoodHomeBleClient:
@@ -237,8 +302,11 @@ class GoodHomeBleClient:
         """Envoyer des paramètres au format de l'API cloud (ex. {"targetMode": 9})."""
         async with self._lock:
             await self._async_ensure_connected()
-            await self._async_command(lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, parameters))
-        _LOGGER.debug("Sent %s to radiator %s over Bluetooth", parameters, self.serial)
+            values = complete_mode_change(parameters, self._state)
+            reply = await self._async_command(
+                lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, values)
+            )
+        _LOGGER.debug("Sent %s to radiator %s over Bluetooth, reply: %s", values, self.serial, reply)
         # Relire tout de suite : la confirmation n'attend pas la prochaine relecture
         self.hass.async_create_background_task(self._async_refresh(), f"goodhome ble refresh {self.serial}")
 
@@ -274,7 +342,6 @@ class GoodHomeBleClient:
             return
         from bleak.exc import BleakError
         from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
-        from homeassistant.components import bluetooth
 
         # Loin de l'adaptateur, les annonces n'arrivent que de temps en temps : attendre la
         # prochaine, Home Assistant ne se connecte qu'à un appareil entendu à l'instant
@@ -286,9 +353,6 @@ class GoodHomeBleClient:
                 self.address,
                 disconnected_callback=self._on_disconnect,
                 max_attempts=3,
-                ble_device_callback=lambda: (
-                    bluetooth.async_ble_device_from_address(self.hass, self.address, connectable=True) or device
-                ),
             )
         except (BleakError, TimeoutError, OSError) as err:
             raise GoodHomeBleError(f"Cannot connect to radiator {self.address}: {err}") from err
@@ -383,6 +447,7 @@ class GoodHomeBleClient:
     def handle_message(self, message: Any) -> None:
         """Traiter un message du radiateur : réponse à une commande ou nouveaux attributs."""
         if (values := attributes_in(message)) is not None:
+            _LOGGER.debug("Attributes from radiator %s: %s", self.serial, values)
             self._state.update(from_radiator(values))
             self._attributes_received.set()
             # Changement envoyé de lui-même par le radiateur (hors lecture demandée)

@@ -166,7 +166,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) ->
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: GoodHomeConfigEntry, device_entry: DeviceEntry
 ) -> bool:
-    """Autoriser la suppression d'un radiateur qui n'existe plus dans le compte GoodHome."""
+    """Autoriser la suppression d'un radiateur qui n'existe plus dans le compte GoodHome.
+
+    En local, l'entrée ne contient que ce radiateur : supprimer l'appareil supprime l'entrée,
+    au lieu d'un refus incompréhensible (et l'appareil reviendrait à la relecture suivante).
+    """
+    if entry.data.get(CONF_CONNECTION) == CONNECTION_LOCAL:
+        hass.async_create_task(hass.config_entries.async_remove(entry.entry_id))
+        return True
     current_ids = set(entry.runtime_data.coordinator.data or {})
     return not any(
         domain == DOMAIN and device_id in current_ids for domain, device_id in device_entry.identifiers

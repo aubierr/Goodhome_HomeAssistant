@@ -84,6 +84,47 @@ def to_radiator(parameters: dict[str, Any]) -> dict[str, Any]:
     return values
 
 
+# Un changement de mode envoyé seul n'est pas appliqué par le radiateur (le cloud complète la
+# commande de lui-même). Comme l'appli, on y ajoute targetTemp et overrideTemp, égales à la
+# température du nouveau mode ; et, constaté sur un vrai radiateur, l'état du planning :
+# - un mode manuel permanent n'est gardé que planning coupé (noprog), sinon le planning reprend
+#   aussitôt la main (le radiateur repasse en 60 quelques secondes plus tard) ;
+# - le retour au planning (60, 61) le rallume : le radiateur choisit alors lui-même son mode.
+# Les forçages provisoires (9, 10, 12) et l'absence longue (5) gardent le planning tel quel.
+MODE_TEMPERATURE = {
+    1: "comfTemp", 9: "comfTemp", 60: "comfTemp",
+    2: "ecoTemp", 10: "ecoTemp", 12: "ecoTemp", 61: "ecoTemp",
+    3: "antifTemp",
+    4: "overrideTemp", 8: "overrideTemp",
+}
+MODE_LONG_ABSENCE = 5  # Envoyé avec des températures à 0, comme dans l'appli
+MANUAL_MODES = {1, 2, 3, 8}  # Modes permanents : planning coupé
+SCHEDULE_MODES = {60, 61}  # Retour au planning
+
+
+def complete_mode_change(parameters: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    """Compléter un changement de mode (températures, planning) pour l'envoyer en Bluetooth."""
+    mode = parameters.get("targetMode")
+    if mode is None:
+        return parameters
+    completed = dict(parameters)
+    if mode in MANUAL_MODES:
+        completed.setdefault("noprog", True)
+    elif mode in SCHEDULE_MODES:
+        completed.setdefault("noprog", False)
+    if "targetTemp" not in parameters:
+        if mode == MODE_LONG_ABSENCE:
+            temperature = 0
+        elif (key := MODE_TEMPERATURE.get(mode)) is not None:
+            temperature = parameters.get(key, state.get(key))
+        else:
+            temperature = None
+        if temperature is not None:
+            completed["targetTemp"] = temperature
+            completed.setdefault("overrideTemp", temperature)
+    return completed
+
+
 def checksum(payload: bytes) -> bytes:
     """Somme pondérée par la position, puis somme simple, chacune sur un octet."""
     plain = weighted = 0

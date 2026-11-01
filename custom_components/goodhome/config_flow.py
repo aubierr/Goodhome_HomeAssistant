@@ -75,28 +75,37 @@ class GoodHomeConfigFlow(ConfigFlow, domain=DOMAIN):
         return configured
 
     async def async_step_local(self, user_input=None) -> ConfigFlowResult:
-        """Choisir un radiateur parmi ceux visibles en Bluetooth."""
+        """Choisir un radiateur parmi ceux visibles en Bluetooth sous leur nom.
+
+        Un radiateur ne s'annonce sous son nom (GOODHOME-XXXX) qu'en mode appairage ; sinon il
+        s'annonce sans nom, sous une adresse aléatoire, et ne peut pas être appairé. Ceux-là ne
+        sont pas proposés : tant qu'aucun radiateur n'est visible sous son nom, le formulaire
+        demande de mettre le radiateur en mode appairage, et Valider relance la recherche.
+        """
         from .ble_client import async_discovered_radiators, async_list_radiators
 
         configured = self._configured_ble_names()
         radiators = {
             address: name
             for address, name in (await async_list_radiators(self.hass)).items()
-            if name not in configured and address not in configured
+            if name != address and name not in configured and address not in configured
         }
-        if user_input is not None:
+        if user_input is not None and user_input.get(CONF_ADDRESS) in radiators:
             self._address = user_input[CONF_ADDRESS]
-            self._ble_name = radiators.get(self._address, self._address)
+            self._ble_name = radiators[self._address]
             await self.async_set_unique_id(self._ble_name)
             self._abort_if_unique_id_configured()
             return await self.async_step_pair()
 
         if not radiators:
-            return self.async_abort(reason="no_devices_found")
-        # Radiateur déjà appairé (annoncé sans nom, nom retrouvé dans BlueZ) : afficher aussi son adresse
+            return self.async_show_form(
+                step_id="local", data_schema=vol.Schema({}), errors={"base": "no_radiator_in_pairing_mode"}
+            )
+        # Radiateur déjà appairé à Home Assistant (annoncé sans nom, nom retrouvé dans BlueZ) :
+        # afficher aussi son adresse
         announced = async_discovered_radiators(self.hass)
         labels = {
-            address: f"{name} ({address})" if announced.get(address) == address != name else name
+            address: f"{name} ({address})" if announced.get(address) == address else name
             for address, name in radiators.items()
         }
         return self.async_show_form(

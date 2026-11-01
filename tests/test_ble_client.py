@@ -261,20 +261,119 @@ async def test_pairing_rejected_is_not_retried(hass):
     assert pair_once.await_count == 1
 
 
-async def test_wait_device_prefers_fresh_advertisement(hass):
+async def test_wait_device_uses_the_advertised_name(hass):
     import time
     from types import SimpleNamespace
 
     from custom_components.goodhome import ble_client
 
-    now = time.monotonic()
-    # BlueZ garde le nom sur l'ancienne adresse fixe ; le radiateur s'annonce ailleurs
-    stale = SimpleNamespace(address="4C:11:AE:00:00:06", name="GOODHOME-0006", time=now - 43, device="old")
-    fresh = SimpleNamespace(address="5D:60:48:00:00:99", name="GOODHOME-0006", time=now - 1, device="new")
-    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [stale, fresh])
+    def info(address, advertised_name, age, device, bluez_name=None):
+        return SimpleNamespace(
+            address=address, name=bluez_name or advertised_name or address, time=time.monotonic() - age,
+            advertisement=SimpleNamespace(local_name=advertised_name), device=device,
+        )
+
+    # Ancienne adresse fixe : BlueZ y garde le nom, mais l'annonce n'en contient pas (et elle est récente)
+    identity = info("4C:11:AE:00:00:06", None, 2, "identity", bluez_name="GOODHOME-0006")
+    # Mode appairage : nouvelle adresse aléatoire, nom dans l'annonce
+    pairing = info("5D:60:48:00:00:99", "GOODHOME-0006", 1, "pairing")
+    old_pairing = info("6E:00:00:00:00:01", "GOODHOME-0006", 43, "old")
+    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [identity, old_pairing, pairing])
     with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
         "homeassistant.components.bluetooth", bluetooth, create=True
     ):
-        assert await ble_client._async_wait_device(hass, stale.address, "GOODHOME-0006") == "new"
+        # Appairage : le nom de l'annonce, jamais celui gardé par BlueZ
+        assert await ble_client._async_wait_device(hass, identity.address, "GOODHOME-0006") == "pairing"
+        # Radiateur appairé : son adresse fixe
+        assert await ble_client._async_wait_device(hass, identity.address, None) == "identity"
+        # Annonce trop ancienne : introuvable
         with pytest.raises(ble_client.GoodHomeBleNotFound):
-            await ble_client._async_wait_device(hass, stale.address, None, timeout=0)
+            await ble_client._async_wait_device(hass, old_pairing.address, None, timeout=0)
+
+
+async def test_mode_change_sent_with_temperatures(hass, radiator):
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    await client.async_get_devices()
+    await client.async_set_state(SERIAL, {"targetMode": 1})
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    sent = next(m for m in radiator.received if m.get("params", {}).get("cmdName") == "ble_set_attr")
+    # Confort à 18 °C dans RADIATOR_VALUES
+    assert sent["params"]["request"]["value"] == {
+        "targetMode": "1", "targetTemp": "180", "overrideTemp": "180", "noprog": "1",
+    }
+
+
+async def test_connects_through_bleak_entry_after_pairing(hass):
+    import time
+    from types import SimpleNamespace
+
+    from custom_components.goodhome import ble_client
+
+    fixed = "4C:11:AE:00:00:E6"
+    now = time.monotonic()
+    # Juste après l'appairage, Home Assistant range les annonces sous l'adresse aléatoire de
+    # l'appairage ; l'adresse fixe n'apparaît que dans les propriétés BlueZ jointes à l'annonce
+    stale = SimpleNamespace(
+        address="76:0E:D1:00:00:9C", time=now - 1, device="stale-entry",
+        advertisement=SimpleNamespace(
+            local_name="GOODHOME-0006", platform_data=("/org/bluez/hci0/dev_76_0E_D1_00_00_9C", {"Address": fixed})
+        ),
+    )
+    old_fixed = SimpleNamespace(address=fixed, time=now - 300, device="old", advertisement=SimpleNamespace(local_name=None))
+    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [old_fixed, stale])
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        assert await ble_client._async_wait_device(hass, fixed, None, timeout=0) == "stale-entry"
+        # Après un redémarrage : annonces rangées sous l'adresse fixe
+        fresh_fixed = SimpleNamespace(
+            address=fixed, time=now, device="fixed", advertisement=SimpleNamespace(local_name=None, platform_data=None)
+        )
+        bluetooth.async_discovered_service_info = lambda _hass, connectable: [fresh_fixed]
+        assert await ble_client._async_wait_device(hass, fixed, None, timeout=0) == "fixed"
+
+
+async def test_deleting_local_device_removes_its_entry(hass, radiator):
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.goodhome import async_remove_config_entry_device
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=SERIAL,
+        data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_SERIAL: SERIAL},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, SERIAL)})
+
+    assert await async_remove_config_entry_device(hass, entry, device)
+    await hass.async_block_till_done()
+    assert hass.config_entries.async_get_entry(entry.entry_id) is None
+    assert radiator.is_connected is False
+
+
+async def test_pairing_ignores_the_forgotten_address(hass):
+    import time
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    fixed = "4C:11:AE:00:00:E6"
+    now = time.monotonic()
+    # BlueZ joint le nom gardé en mémoire à la dernière annonce de l'ancienne adresse fixe
+    old = SimpleNamespace(address=fixed, time=now - 1, device="old", advertisement=SimpleNamespace(local_name="GOODHOME-0006"))
+    pairing = SimpleNamespace(address="76:0E:D1:00:00:9C", time=now + 5, device="pairing",
+                              advertisement=SimpleNamespace(local_name="GOODHOME-0006"))
+    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [old, pairing])
+    paired = (fixed, SERIAL, {})
+    with (
+        patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}),
+        patch("homeassistant.components.bluetooth", bluetooth, create=True),
+        patch.object(ble_client, "_async_forget", AsyncMock()),
+        patch.object(ble_client, "_async_pair_once", AsyncMock(return_value=paired)) as pair_once,
+    ):
+        assert await ble_client.async_pair_radiator(hass, fixed, "GOODHOME-0006") == paired
+    assert pair_once.await_args.args[1] == "pairing"

@@ -113,3 +113,31 @@ def test_attributes_in():
     assert attributes_in(message) == {"a": "1"}
     assert attributes_in({"type": "return", "cmdName": "system.send_to_host"}) is None
     assert attributes_in("text") is None
+
+
+def test_mode_change_carries_its_temperature_and_schedule_state():
+    from custom_components.goodhome.ble import complete_mode_change
+
+    state = {"comfTemp": 19.0, "ecoTemp": 16.0, "antifTemp": 7.0, "overrideTemp": 20.5}
+    # Mode manuel permanent : température du mode, planning coupé
+    assert complete_mode_change({"targetMode": 1}, state) == {
+        "targetMode": 1, "targetTemp": 19.0, "overrideTemp": 19.0, "noprog": True,
+    }
+    assert complete_mode_change({"targetMode": 3}, state)["targetTemp"] == 7.0
+    # Consigne libre : la température envoyée par le thermostat est gardée
+    assert complete_mode_change({"targetMode": 8, "overrideTemp": 21.5}, state) == {
+        "targetMode": 8, "overrideTemp": 21.5, "targetTemp": 21.5, "noprog": True,
+    }
+    # Retour au planning : planning rallumé
+    assert complete_mode_change({"targetMode": 61}, state) == {
+        "targetMode": 61, "targetTemp": 16.0, "overrideTemp": 16.0, "noprog": False,
+    }
+    # Forçage provisoire et absence longue : planning inchangé
+    assert complete_mode_change({"targetMode": 9}, state) == {"targetMode": 9, "targetTemp": 19.0, "overrideTemp": 19.0}
+    assert complete_mode_change({"targetMode": 5}, state) == {"targetMode": 5, "targetTemp": 0, "overrideTemp": 0}
+    # Pas un changement de mode, ou mode sans température connue
+    assert complete_mode_change({"comfTemp": 20.0}, state) == {"comfTemp": 20.0}
+    assert complete_mode_change({"targetMode": 30}, state) == {"targetMode": 30}
+    assert complete_mode_change({"targetMode": 1}, {}) == {"targetMode": 1, "noprog": True}
+    # Choix explicite conservé
+    assert complete_mode_change({"targetMode": 1, "noprog": False}, state)["noprog"] is False

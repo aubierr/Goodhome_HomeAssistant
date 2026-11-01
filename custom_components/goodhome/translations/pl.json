@@ -23,14 +23,14 @@
       },
       "local": {
         "title": "Wybierz grzejnik",
-        "description": "Grzejniki widoczne dla adaptera Bluetooth Home Assistant. Każdy grzejnik dodaje się osobno; grzejnik już sparowany z Home Assistant jest widoczny pod swoim adresem.",
+        "description": "1. Przełącz grzejnik w tryb parowania, jak w aplikacji GoodHome: na grzejniku naciśnij **Ustawienia** (ikona koła zębatego), potem **Połączenie**, potem **Dodaj**.\n2. Pojawi się poniżej pod swoją nazwą (**GOODHOME-XXXX**): wybierz go.\n\nGrzejnik pokazuje swoją nazwę tylko w trybie parowania. Grzejnik już sparowany z Home Assistant jest widoczny ze swoim adresem. Każdy grzejnik dodaje się osobno.",
         "data": {
           "address": "Grzejnik"
         }
       },
       "pair": {
         "title": "Sparuj {name}",
-        "description": "Przełącz **{name}** w tryb parowania, jak w aplikacji GoodHome:\n\n1. Na grzejniku naciśnij **Ustawienia** (ikona koła zębatego).\n2. Naciśnij **Połączenie**.\n3. Naciśnij **Dodaj**.\n\nNastępnie od razu kliknij **Zatwierdź**: parowanie trwa do minuty. Grzejnik musi być w zasięgu adaptera Bluetooth (to samo lub sąsiednie pomieszczenie)."
+        "description": "**{name}** jest w trybie parowania. Od razu kliknij **Zatwierdź**: parowanie trwa do minuty.\n\nJeśli tryb parowania w międzyczasie się zakończył, powtórz 3 kroki na grzejniku (**Ustawienia** → **Połączenie** → **Dodaj**) tuż przed zatwierdzeniem. Grzejnik musi być w zasięgu adaptera Bluetooth (to samo lub sąsiednie pomieszczenie)."
       },
       "reauth_confirm": {
         "title": "Ponowne uwierzytelnienie GoodHome",
@@ -49,15 +49,15 @@
       "unknown": "Nieznany błąd",
       "pair_failed": "Parowanie nie powiodło się ({error}). Powtórz 3 kroki na grzejniku i spróbuj ponownie; jeśli nadal się nie udaje, przybliż adapter Bluetooth.",
       "not_found": "Grzejnik nie jest już widoczny przez Bluetooth. Sprawdź, czy jest włączony, i przybliż adapter Bluetooth, a następnie spróbuj ponownie.",
-      "pair_rejected": "Grzejnik odrzucił parowanie: nie był w trybie parowania. Powtórz 3 kroki na grzejniku i od razu kliknij Zatwierdź."
+      "pair_rejected": "Grzejnik odrzucił parowanie: nie był w trybie parowania. Powtórz 3 kroki na grzejniku i od razu kliknij Zatwierdź.",
+      "no_radiator_in_pairing_mode": "Żaden grzejnik nie jest jeszcze w trybie parowania. Przełącz grzejnik w tryb parowania (Ustawienia → Połączenie → Dodaj), odczekaj kilka sekund i kliknij Zatwierdź, aby wyszukać ponownie."
     },
     "abort": {
       "already_configured": "To konto lub ten grzejnik GoodHome jest już skonfigurowany",
       "reauth_successful": "Ponowne uwierzytelnienie powiodło się",
       "cannot_connect": "Nie można połączyć się z GoodHome",
       "invalid_auth": "Nieprawidłowe dane logowania",
-      "unknown": "Nieznany błąd",
-      "no_devices_found": "Nie znaleziono grzejnika GoodHome przez Bluetooth. Sprawdź, czy Home Assistant ma adapter Bluetooth w zasięgu grzejnika."
+      "unknown": "Nieznany błąd"
     },
     "flow_title": "{name}"
   },

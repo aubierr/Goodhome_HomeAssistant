@@ -155,11 +155,24 @@ async def test_local_flow_pair_failure_can_retry(hass, discovered, mock_pair, mo
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_local_flow_without_radiators_aborts(hass):
-    with patch("custom_components.goodhome.ble_client.async_discovered_radiators", return_value={}):
+async def test_local_flow_waits_for_a_radiator_in_pairing_mode(hass, mock_pair, mock_setup_entry):
+    # Seuls des radiateurs sans nom (pas en mode appairage) sont visibles : ils ne sont pas proposés
+    announced = {"56:82:18:00:00:94": "56:82:18:00:00:94"}
+    with patch("custom_components.goodhome.ble_client.async_discovered_radiators", return_value=announced):
         result = await _local_form(hass)
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "no_devices_found"
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "local"
+        assert result["errors"] == {"base": "no_radiator_in_pairing_mode"}
+
+        # Le radiateur passe en mode appairage : Valider relance la recherche
+        announced[BLE_ADDRESS] = "GOODHOME-0001"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        assert result["step_id"] == "local"
+        assert result["errors"] is None
+        assert result["data_schema"].schema["address"].container == {BLE_ADDRESS: "GOODHOME-0001"}
+
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"address": BLE_ADDRESS})
+    assert result["step_id"] == "pair"
 
 
 async def test_local_flow_hides_configured_radiators(hass, discovered):
@@ -167,8 +180,8 @@ async def test_local_flow_hides_configured_radiators(hass, discovered):
 
     MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, data={"connection": "local", "ble_name": "GOODHOME-0001"}).add_to_hass(hass)
     result = await _local_form(hass)
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "no_devices_found"
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "no_radiator_in_pairing_mode"}
 
 
 async def test_bluetooth_discovery_goes_to_pairing(hass, discovered, mock_pair, mock_setup_entry):
