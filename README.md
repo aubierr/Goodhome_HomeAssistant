@@ -6,6 +6,8 @@
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=aubierr&repository=Goodhome_HomeAssistant&category=integration)
+
 Deux modes de connexion, au choix à l'ajout de l'intégration :
 - ☁️ **Compte GoodHome (cloud)** : vos identifiants de l'application, tous les radiateurs du compte d'un coup. Aucun matériel en plus.
 - 📶 **Bluetooth local** : sans compte ni cloud, chaque radiateur appairé directement à Home Assistant. Il faut un adaptateur Bluetooth (ou un proxy Bluetooth ESPHome) à portée des radiateurs.
@@ -48,6 +50,14 @@ Deux modes de connexion, au choix à l'ajout de l'intégration :
 ### Via HACS (recommandé)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=aubierr&repository=Goodhome_HomeAssistant&category=integration)
+
+1. Cliquez sur le bouton ci-dessus : HACS s'ouvre sur la page de l'intégration GoodHome dans votre Home Assistant (acceptez l'ajout du dépôt personnalisé si HACS le demande)
+2. Cliquez sur **Télécharger**, puis redémarrez Home Assistant
+3. Ajoutez l'intégration :
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=goodhome)
+
+Sans le bouton : dans HACS, menu **⋮** → **Dépôts personnalisés**, ajoutez `https://github.com/aubierr/Goodhome_HomeAssistant` (type **Intégration**), puis recherchez **GoodHome**.
 
 ### Installation manuelle
 

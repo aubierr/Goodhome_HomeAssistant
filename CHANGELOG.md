@@ -27,6 +27,7 @@ Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fo
 
 ### Modifié
 - 🧭 Le formulaire de connexion au compte cloud est précédé du menu de choix du mode
+- 📖 README : bouton d'installation HACS en haut de page, étapes d'installation détaillées et bouton « Ajouter l'intégration »
 - 🧪 147 tests, 86 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
 
 ### Limites connues du mode local
