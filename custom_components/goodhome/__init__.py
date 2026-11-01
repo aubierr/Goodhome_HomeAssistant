@@ -174,7 +174,11 @@ async def async_remove_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) ->
     from .ble_client import async_discovered_radiators, async_rediscover
 
     name = entry.data.get(CONF_BLE_NAME)
-    current = [address for address, found in async_discovered_radiators(hass).items() if name and found == name]
+    try:
+        current = [address for address, found in async_discovered_radiators(hass).items() if name and found == name]
+    except Exception as err:  # noqa: BLE001 - la suppression ne doit jamais échouer
+        _LOGGER.debug("Cannot list Bluetooth radiators: %s", err)
+        current = []
     async_rediscover(hass, entry.data.get(CONF_ADDRESS), *current)
 
 

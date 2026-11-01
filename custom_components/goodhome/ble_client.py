@@ -64,10 +64,14 @@ CONNECT_WAIT = 30  # Attente d'une annonce avant chaque connexion (secondes)
 
 @callback
 def async_connectable_scanner_count(hass: HomeAssistant) -> int:
-    """Nombre d'adaptateurs ou de proxys Bluetooth capables de se connecter."""
+    """Nombre d'adaptateurs ou de proxys Bluetooth capables de se connecter (0 sans Bluetooth chargé)."""
     from homeassistant.components import bluetooth
 
-    return bluetooth.async_scanner_count(hass, connectable=True)
+    try:
+        return bluetooth.async_scanner_count(hass, connectable=True)
+    except Exception as err:  # noqa: BLE001 - Bluetooth de Home Assistant pas encore chargé
+        _LOGGER.debug("Cannot count Bluetooth scanners: %s", err)
+        return 0
 
 
 @callback
@@ -76,7 +80,10 @@ def async_rediscover(hass: HomeAssistant, *addresses: str) -> None:
     from homeassistant.components import bluetooth
 
     for address in dict.fromkeys(address for address in addresses if address):
-        bluetooth.async_rediscover_address(hass, address)
+        try:
+            bluetooth.async_rediscover_address(hass, address)
+        except Exception as err:  # noqa: BLE001 - redécouverte au mieux, la suppression continue
+            _LOGGER.debug("Cannot rediscover Bluetooth address %s: %s", address, err)
 
 
 @callback

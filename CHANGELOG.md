@@ -27,7 +27,7 @@ Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fo
 
 ### Modifié
 - 🧭 Le formulaire de connexion au compte cloud est précédé du menu de choix du mode
-- 🧪 146 tests, 86 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
+- 🧪 147 tests, 86 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
 
 ### Limites connues du mode local
 - 📡 Portée du Bluetooth : vers −80 dBm, la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente ; rapprocher l'adaptateur ou ajouter un proxy Bluetooth ESPHome (appairage à travers un proxy pas encore testé)

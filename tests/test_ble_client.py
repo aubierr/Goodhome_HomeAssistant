@@ -468,3 +468,20 @@ async def test_failed_active_scan_and_diagnostics_are_ignored(hass):
         ble_client.async_request_active_scan(hass)
         await hass.async_block_till_done()
         assert ble_client.async_reachability(hass, ADDRESS) is None
+
+
+async def test_bluetooth_not_loaded_does_not_break_flow_or_removal(hass):
+    from custom_components.goodhome import async_remove_entry, ble_client
+
+    def not_loaded(*_args, **_kwargs):
+        raise RuntimeError("Bluetooth manager not set up")
+
+    bluetooth = SimpleNamespace(
+        async_scanner_count=not_loaded, async_rediscover_address=not_loaded, async_discovered_service_info=not_loaded
+    )
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_BLE_NAME: "GOODHOME-0001"})
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        assert ble_client.async_connectable_scanner_count(hass) == 0
+        await async_remove_entry(hass, entry)
