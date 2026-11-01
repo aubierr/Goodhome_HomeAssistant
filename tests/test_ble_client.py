@@ -1,6 +1,7 @@
 """Tests du client Bluetooth local, face à un radiateur simulé."""
 import asyncio
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -377,3 +378,93 @@ async def test_pairing_ignores_the_forgotten_address(hass):
     ):
         assert await ble_client.async_pair_radiator(hass, fixed, "GOODHOME-0006") == paired
     assert pair_once.await_args.args[1] == "pairing"
+
+
+async def test_remove_local_entry_allows_rediscovery(hass):
+    from unittest.mock import MagicMock
+
+    from custom_components.goodhome import async_remove_entry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=SERIAL,
+        data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_SERIAL: SERIAL, CONF_BLE_NAME: "GOODHOME-0001"},
+    )
+    rediscover = MagicMock()
+    bluetooth = SimpleNamespace(
+        async_rediscover_address=rediscover,
+        # Le radiateur, remis en mode appairage, s'annonce sous une autre adresse
+        async_discovered_service_info=lambda _hass, connectable: [
+            SimpleNamespace(address="11:22:33:44:55:66", name="GOODHOME-0001", service_uuids=[]),
+            SimpleNamespace(address="11:22:33:44:55:77", name="GOODHOME-0002", service_uuids=[]),
+        ],
+    )
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        await async_remove_entry(hass, entry)
+        assert [call.args for call in rediscover.call_args_list] == [(hass, ADDRESS), (hass, "11:22:33:44:55:66")]
+
+        # Compte cloud : rien à redécouvrir
+        rediscover.reset_mock()
+        await async_remove_entry(hass, MockConfigEntry(domain=DOMAIN, data={"email": "a@b.c"}))
+        rediscover.assert_not_called()
+
+
+async def test_pairing_wait_requests_active_scan_and_explains(hass):
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    scan = AsyncMock()
+    bluetooth = SimpleNamespace(
+        async_discovered_service_info=lambda _hass, connectable: [],
+        async_request_active_scan=scan,
+        async_address_reachability_diagnostics=lambda _hass, address, intent: f"{address} not seen by any scanner ({intent})",
+        BluetoothReachabilityIntent=SimpleNamespace(CONNECTION="connection"),
+    )
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        with pytest.raises(ble_client.GoodHomeBleNotFound, match=r"not seen by any scanner \(connection\)"):
+            await ble_client._async_wait_device(hass, ADDRESS, "GOODHOME-0001", timeout=1.5, active_scan=True)
+        await hass.async_block_till_done()
+        scan.assert_awaited_once_with(hass)
+
+        # Hors appairage, pas de recherche active
+        scan.reset_mock()
+        with pytest.raises(ble_client.GoodHomeBleNotFound):
+            await ble_client._async_wait_device(hass, ADDRESS, None, timeout=0)
+        scan.assert_not_called()
+
+
+async def test_older_home_assistant_without_recent_bluetooth_functions(hass):
+    from custom_components.goodhome import ble_client
+
+    bluetooth = SimpleNamespace(async_scanner_count=lambda _hass, connectable: 0)
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        ble_client.async_request_active_scan(hass)
+        assert ble_client.async_reachability(hass, ADDRESS) is None
+        assert ble_client.async_connectable_scanner_count(hass) == 0
+
+
+async def test_failed_active_scan_and_diagnostics_are_ignored(hass):
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    def diagnose(_hass, _address, _intent):
+        raise RuntimeError("boom")
+
+    bluetooth = SimpleNamespace(
+        async_request_active_scan=AsyncMock(side_effect=RuntimeError("busy")),
+        async_address_reachability_diagnostics=diagnose,
+        BluetoothReachabilityIntent=SimpleNamespace(CONNECTION="connection"),
+    )
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        ble_client.async_request_active_scan(hass)
+        await hass.async_block_till_done()
+        assert ble_client.async_reachability(hass, ADDRESS) is None

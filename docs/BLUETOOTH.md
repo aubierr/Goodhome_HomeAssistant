@@ -161,6 +161,17 @@ Particularités :
 - les modes (`targetMode`) ont les mêmes valeurs qu'en cloud (voir [MODES.md](MODES.md)) ;
 - la version matérielle (`HwVer`) et le code défaut (`faultSystem`) de l'API cloud ne font pas partie des attributs lus en Bluetooth.
 
+## Aides du Bluetooth de Home Assistant
+
+D'après le [guide Bluetooth de Home Assistant](https://contributors.home-assistant.io/core/integrations/bluetooth/), l'intégration s'appuie sur ces fonctions :
+
+- **Aucun adaptateur capable de se connecter** : avant de chercher les radiateurs, `bluetooth.async_scanner_count(hass, connectable=True)` est vérifié. À 0 (pas d'adaptateur, ou seulement des proxys en écoute passive), l'ajout affiche une erreur claire au lieu d'une liste vide ; Valider revérifie.
+- **Redécouverte après suppression** : le Bluetooth de Home Assistant ne propose un appareil qu'une fois par adresse. À la suppression d'une entrée locale, `bluetooth.async_rediscover_address` est appelé pour son adresse fixe et pour les adresses où son nom `GOODHOME-XXXX` est visible : la carte « Découvertes » revient sans redémarrage quand le radiateur est remis en mode appairage.
+- **Recherche active** : quand aucun radiateur n'est encore visible en mode appairage, et pendant l'attente d'une annonce lors de l'appairage, `bluetooth.async_request_active_scan` est demandé en tâche de fond, pour qu'un radiateur lointain, entendu rarement, apparaisse plus vite. Cette fonction est récente : absente (Home Assistant plus ancien), rien n'est fait.
+- **Erreur expliquée** : quand le radiateur n'est pas vu à temps ou que la connexion échoue, l'explication de `bluetooth.async_address_reachability_diagnostics` (intention `CONNECTION` : récepteurs qui l'ont vu, signal, emplacements de connexion occupés) est ajoutée au message d'erreur, visible dans le journal et dans le détail des entrées en échec. Fonction récente elle aussi : absente, le message reste le même. Son texte n'est jamais analysé, il peut changer d'une version à l'autre.
+
+Le Bluetooth de Home Assistant n'est importé qu'à l'intérieur des fonctions de `ble_client.py`, pour ne pas l'imposer au mode cloud. Ces quatre points sont couverts par des tests avec un Bluetooth simulé, pas encore vérifiés sur de vrais radiateurs.
+
 ## Limites connues
 
 - **Portée** : le Bluetooth Low Energy porte à une pièce ou deux. Vers −80 dBm, les annonces du radiateur n'arrivent que de temps en temps : la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente en mode appairage (constaté sur un radiateur à −80 dBm). Rapprocher l'adaptateur, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) près des radiateurs, règle ce problème (voir les pistes plus bas pour l'appairage à travers un proxy).
@@ -174,10 +185,6 @@ Particularités :
 
 Relevées dans la documentation de Home Assistant et des bibliothèques Bluetooth, à valider sur de vrais radiateurs :
 
-- **Message clair sans adaptateur** : `bluetooth.async_scanner_count(hass, connectable=True)` permet d'indiquer dès le choix du mode qu'aucun adaptateur ne peut se connecter ([guide Bluetooth de Home Assistant](https://contributors.home-assistant.io/core/integrations/bluetooth/)).
-- **Redécouverte après suppression** : `bluetooth.async_rediscover_address(hass, address)` après la suppression d'une entrée, pour que la carte « Découvertes » réapparaisse sans redémarrage (même guide). Aujourd'hui, elle n'apparaît qu'une fois par appareil.
-- **Recherche active pendant l'ajout** : `bluetooth.async_request_active_scan(hass)` déclenche une recherche active à la demande, utile pour un radiateur lointain dont les annonces arrivent rarement (même guide).
-- **Erreur de connexion expliquée** : `bluetooth.async_address_reachability_diagnostics(...)` donne une explication lisible (récepteurs occupés, appareil non vu) à reprendre dans les messages d'erreur (même guide).
-- **Dépendance `bluetooth_adapters`** dans le manifeste, recommandée par Home Assistant pour les intégrations Bluetooth (même guide). Elle imposerait le Bluetooth aux utilisateurs du mode cloud : à peser.
+- **Dépendance `bluetooth_adapters`** dans le manifeste, recommandée par Home Assistant pour les intégrations Bluetooth ([guide Bluetooth](https://contributors.home-assistant.io/core/integrations/bluetooth/)). Elle imposerait le Bluetooth aux utilisateurs du mode cloud : à peser.
 - **`ble_device_callback`** de bleak-retry-connector n'est plus appelé dans les versions récentes ([documentation](https://bleak-retry-connector.readthedocs.io/en/latest/usage.html), constaté dans la 4.7.1) : l'intégration ne l'utilise plus et passe directement l'appareil le plus récent.
 - **Appairage à travers un proxy ESPHome** : la prise en charge dépend du firmware du proxy, qui doit annoncer la fonction d'appairage ([bleak-esphome](https://bleak-esphome.readthedocs.io/en/latest/_sources/architecture.md.txt), [ESPHome](https://api-docs-dev.esphome.io/bluetooth__proxy_8h_source)). Pour un thermostat qui demande lui aussi une confirmation, des utilisateurs signalent un appairage réussi avec `esp32_ble: io_capability: display_yes_no` côté ESP32 ([intégration Daikin Madoka](https://community.home-assistant.io/t/custom-integration-daikin-madoka-brc1h-bluetooth-thermostat-via-ha-or-esphome/984675)). L'agent BlueZ de l'intégration ne s'applique pas à un proxy : à tester.

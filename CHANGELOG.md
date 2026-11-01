@@ -18,12 +18,16 @@ Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fo
 - 🛡️ Appairage robuste : ancien appairage oublié avant chaque essai, annonces de l'adresse oubliée ignorées, connexion sans redémarrage juste après l'appairage malgré l'adresse figée par Bleak
 - 🗑️ En local, supprimer l'appareil d'un radiateur supprime aussi son entrée
 - 💬 Erreurs d'appairage expliquées : radiateur introuvable (trop loin), appairage refusé (pas en mode appairage), échec avec le détail technique
+- 📵 Sans adaptateur Bluetooth capable de se connecter, l'ajout en local l'indique clairement au lieu d'une liste vide
+- ♻️ Supprimer un radiateur local permet de le redécouvrir (carte **Découvertes**) sans redémarrer Home Assistant
+- 📡 Recherche Bluetooth active demandée tant qu'aucun radiateur n'est visible en mode appairage et pendant l'appairage, pour les radiateurs lointains (Home Assistant récent)
+- 🩺 Radiateur introuvable ou connexion impossible : l'explication de Home Assistant (récepteurs, signal, connexions occupées) est ajoutée au message d'erreur (Home Assistant récent)
 - 📖 [docs/BLUETOOTH.md](docs/BLUETOOTH.md) : protocole Bluetooth retrouvé dans l'application GoodHome Connect (service, trames, commandes, changement de mode, encodage des valeurs, pièges de l'appairage, limites connues, pistes d'amélioration)
 - 🩺 Diagnostics : mode de connexion (`connection`) ; en local, adresse Bluetooth, numéro de série et nom du Wi-Fi sont masqués
 
 ### Modifié
 - 🧭 Le formulaire de connexion au compte cloud est précédé du menu de choix du mode
-- 🧪 141 tests, 85 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
+- 🧪 146 tests, 86 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
 
 ### Limites connues du mode local
 - 📡 Portée du Bluetooth : vers −80 dBm, la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente ; rapprocher l'adaptateur ou ajouter un proxy Bluetooth ESPHome (appairage à travers un proxy pas encore testé)

@@ -82,8 +82,18 @@ class GoodHomeConfigFlow(ConfigFlow, domain=DOMAIN):
         sont pas proposés : tant qu'aucun radiateur n'est visible sous son nom, le formulaire
         demande de mettre le radiateur en mode appairage, et Valider relance la recherche.
         """
-        from .ble_client import async_discovered_radiators, async_list_radiators
+        from .ble_client import (
+            async_connectable_scanner_count,
+            async_discovered_radiators,
+            async_list_radiators,
+            async_request_active_scan,
+        )
 
+        # Sans adaptateur ni proxy capable de se connecter, aucun radiateur ne peut être appairé
+        if async_connectable_scanner_count(self.hass) == 0:
+            return self.async_show_form(
+                step_id="local", data_schema=vol.Schema({}), errors={"base": "no_connectable_adapter"}
+            )
         configured = self._configured_ble_names()
         radiators = {
             address: name
@@ -98,6 +108,8 @@ class GoodHomeConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_pair()
 
         if not radiators:
+            # Aider un radiateur lointain, entendu rarement, à apparaître avant le prochain essai
+            async_request_active_scan(self.hass)
             return self.async_show_form(
                 step_id="local", data_schema=vol.Schema({}), errors={"base": "no_radiator_in_pairing_mode"}
             )

@@ -63,6 +63,67 @@ CONNECT_WAIT = 30  # Attente d'une annonce avant chaque connexion (secondes)
 
 
 @callback
+def async_connectable_scanner_count(hass: HomeAssistant) -> int:
+    """Nombre d'adaptateurs ou de proxys Bluetooth capables de se connecter."""
+    from homeassistant.components import bluetooth
+
+    return bluetooth.async_scanner_count(hass, connectable=True)
+
+
+@callback
+def async_rediscover(hass: HomeAssistant, *addresses: str) -> None:
+    """Oublier les découvertes passées de ces adresses, pour que la carte « Découvertes » revienne."""
+    from homeassistant.components import bluetooth
+
+    for address in dict.fromkeys(address for address in addresses if address):
+        bluetooth.async_rediscover_address(hass, address)
+
+
+@callback
+def async_request_active_scan(hass: HomeAssistant) -> None:
+    """Demander une recherche active en tâche de fond (Home Assistant récent seulement).
+
+    Un radiateur lointain n'est entendu que de temps en temps en recherche passive : une
+    recherche active fait arriver ses annonces plus vite.
+    """
+    from homeassistant.components import bluetooth
+
+    request = getattr(bluetooth, "async_request_active_scan", None)
+    if request is None:
+        return
+
+    async def _async_scan() -> None:
+        try:
+            await request(hass)
+        except Exception as err:  # noqa: BLE001 - recherche en plus, au mieux
+            _LOGGER.debug("Active Bluetooth scan failed: %s", err)
+
+    hass.async_create_background_task(_async_scan(), "goodhome ble active scan")
+
+
+@callback
+def async_reachability(hass: HomeAssistant, address: str) -> str | None:
+    """Explication lisible de Home Assistant sur la joignabilité d'une adresse (récent seulement)."""
+    from homeassistant.components import bluetooth
+
+    diagnose = getattr(bluetooth, "async_address_reachability_diagnostics", None)
+    intent = getattr(getattr(bluetooth, "BluetoothReachabilityIntent", None), "CONNECTION", None)
+    if diagnose is None or intent is None:
+        return None
+    try:
+        return diagnose(hass, address, intent) or None
+    except Exception as err:  # noqa: BLE001 - explication en plus, au mieux
+        _LOGGER.debug("Bluetooth reachability diagnostics of %s failed: %s", address, err)
+        return None
+
+
+def _with_reachability(hass: HomeAssistant, message: str, address: str) -> str:
+    """Message d'erreur complété par l'explication de Home Assistant, si elle existe."""
+    reason = async_reachability(hass, address)
+    return f"{message} ({reason})" if reason else message
+
+
+@callback
 def async_discovered_radiators(hass: HomeAssistant) -> dict[str, str]:
     """Radiateurs visibles en Bluetooth : adresse -> nom (GOODHOME-XXXX).
 
@@ -168,13 +229,23 @@ async def _async_wait_device(
     *,
     since: float | None = None,
     exclude: frozenset = frozenset(),
+    active_scan: bool = False,
 ):
-    """Attendre une annonce récente du radiateur (voir _async_fresh_device)."""
+    """Attendre une annonce récente du radiateur (voir _async_fresh_device).
+
+    active_scan (appairage) : demander une recherche active si le radiateur n'est pas entendu.
+    """
     loop = asyncio.get_running_loop()
     deadline = loop.time() + timeout
+    scanning = False
     while (device := _async_fresh_device(hass, address, name, since=since, exclude=exclude)) is None:
         if loop.time() >= deadline:
-            raise GoodHomeBleNotFound(f"Radiator {name or address} not seen over Bluetooth recently")
+            raise GoodHomeBleNotFound(
+                _with_reachability(hass, f"Radiator {name or address} not seen over Bluetooth recently", address)
+            )
+        if active_scan and not scanning:
+            scanning = True
+            async_request_active_scan(hass)
         await asyncio.sleep(1)
     return device
 
@@ -221,7 +292,7 @@ async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tup
             # Juste après l'appairage, le premier échange échoue parfois : se reconnecter
             _LOGGER.debug("First exchange after pairing failed (%s), reconnecting", err)
             await client.async_close()
-            await _async_wait_device(hass, client.address, None)
+            await _async_wait_device(hass, client.address, None, active_scan=True)
         devices = await client.async_get_devices()
     finally:
         await client.async_close()
@@ -237,7 +308,7 @@ async def async_pair_radiator(
     await _async_forget(address, name=name)
     exclude = frozenset({address.upper()})
     since = time.monotonic()
-    device = await _async_wait_device(hass, address, name, since=since, exclude=exclude)
+    device = await _async_wait_device(hass, address, name, since=since, exclude=exclude, active_scan=True)
     try:
         return await _async_pair_once(hass, device, name)
     except GoodHomeBlePairingRejected:
@@ -248,7 +319,7 @@ async def async_pair_radiator(
         # Clé que le radiateur n'a plus (créée pendant cet essai) : l'oublier et recommencer
         _LOGGER.info("Stale Bluetooth pairing for %s (%s), pairing again from scratch", name or address, err)
         await _async_forget(address, device.address, name=name)
-    device = await _async_wait_device(hass, address, name, since=time.monotonic(), exclude=exclude)
+    device = await _async_wait_device(hass, address, name, since=time.monotonic(), exclude=exclude, active_scan=True)
     return await _async_pair_once(hass, device, name)
 
 
@@ -355,7 +426,9 @@ class GoodHomeBleClient:
                 max_attempts=3,
             )
         except (BleakError, TimeoutError, OSError) as err:
-            raise GoodHomeBleError(f"Cannot connect to radiator {self.address}: {err}") from err
+            raise GoodHomeBleError(
+                _with_reachability(self.hass, f"Cannot connect to radiator {self.address}: {err}", self.address)
+            ) from err
         await self._async_start(client)
 
     async def _async_start(self, client) -> None:

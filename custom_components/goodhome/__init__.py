@@ -13,7 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_ADDRESS, CONF_CONNECTION, CONF_SERIAL, CONNECTION_LOCAL, DOMAIN
+from .const import CONF_ADDRESS, CONF_BLE_NAME, CONF_CONNECTION, CONF_SERIAL, CONNECTION_LOCAL, DOMAIN
 from .coordinator import GoodHomeCoordinator
 from .goodhome_api import GoodHomeAuthError, GoodHomeClient, GoodHomeError
 from .push import GoodHomePushClient
@@ -161,6 +161,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) ->
     if unloaded and entry.data.get(CONF_CONNECTION) == CONNECTION_LOCAL:
         await entry.runtime_data.coordinator.client.async_close()
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> None:
+    """Radiateur local supprimé : le laisser être redécouvert sans redémarrer Home Assistant.
+
+    Le Bluetooth de Home Assistant ne propose un appareil qu'une fois par adresse : sans cela, la
+    carte « Découvertes » ne reviendrait pas pour un radiateur remis en mode appairage.
+    """
+    if entry.data.get(CONF_CONNECTION) != CONNECTION_LOCAL:
+        return
+    from .ble_client import async_discovered_radiators, async_rediscover
+
+    name = entry.data.get(CONF_BLE_NAME)
+    current = [address for address, found in async_discovered_radiators(hass).items() if name and found == name]
+    async_rediscover(hass, entry.data.get(CONF_ADDRESS), *current)
 
 
 async def async_remove_config_entry_device(

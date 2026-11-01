@@ -50,7 +50,8 @@
       "pair_failed": "Parowanie nie powiodło się ({error}). Powtórz 3 kroki na grzejniku i spróbuj ponownie; jeśli nadal się nie udaje, przybliż adapter Bluetooth.",
       "not_found": "Grzejnik nie jest już widoczny przez Bluetooth. Sprawdź, czy jest włączony, i przybliż adapter Bluetooth, a następnie spróbuj ponownie.",
       "pair_rejected": "Grzejnik odrzucił parowanie: nie był w trybie parowania. Powtórz 3 kroki na grzejniku i od razu kliknij Zatwierdź.",
-      "no_radiator_in_pairing_mode": "Żaden grzejnik nie jest jeszcze w trybie parowania. Przełącz grzejnik w tryb parowania (Ustawienia → Połączenie → Dodaj), odczekaj kilka sekund i kliknij Zatwierdź, aby wyszukać ponownie."
+      "no_radiator_in_pairing_mode": "Żaden grzejnik nie jest jeszcze w trybie parowania. Przełącz grzejnik w tryb parowania (Ustawienia → Połączenie → Dodaj), odczekaj kilka sekund i kliknij Zatwierdź, aby wyszukać ponownie.",
+      "no_connectable_adapter": "Żaden adapter Bluetooth nie może połączyć się z grzejnikiem. Dodaj adapter Bluetooth do Home Assistant (lub proxy Bluetooth ESPHome z aktywnymi połączeniami), a następnie kliknij Zatwierdź, aby spróbować ponownie."
     },
     "abort": {
       "already_configured": "To konto lub ten grzejnik GoodHome jest już skonfigurowany",

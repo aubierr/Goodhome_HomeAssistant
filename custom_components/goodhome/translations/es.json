@@ -50,7 +50,8 @@
       "pair_failed": "El emparejamiento ha fallado ({error}). Repita los 3 pasos en el radiador y vuelva a intentarlo; si sigue fallando, acerque el adaptador Bluetooth.",
       "not_found": "El radiador ya no se ve por Bluetooth. Compruebe que está encendido y acerque el adaptador Bluetooth; luego vuelva a intentarlo.",
       "pair_rejected": "El radiador ha rechazado el emparejamiento: no estaba en modo emparejamiento. Repita los 3 pasos en el radiador y haga clic enseguida en Enviar.",
-      "no_radiator_in_pairing_mode": "Todavía no hay ningún radiador en modo emparejamiento. Ponga el radiador en modo emparejamiento (Ajustes → Conexión → Añadir), espere unos segundos y haga clic en Enviar para buscar de nuevo."
+      "no_radiator_in_pairing_mode": "Todavía no hay ningún radiador en modo emparejamiento. Ponga el radiador en modo emparejamiento (Ajustes → Conexión → Añadir), espere unos segundos y haga clic en Enviar para buscar de nuevo.",
+      "no_connectable_adapter": "Ningún adaptador Bluetooth puede conectarse a un radiador. Añada un adaptador Bluetooth a Home Assistant (o un proxy Bluetooth ESPHome con conexiones activas) y haga clic en Enviar para volver a intentarlo."
     },
     "abort": {
       "already_configured": "Esta cuenta o este radiador GoodHome ya está configurado",

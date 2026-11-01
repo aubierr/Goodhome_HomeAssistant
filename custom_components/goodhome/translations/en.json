@@ -50,7 +50,8 @@
       "pair_failed": "Pairing failed ({error}). Redo the 3 steps on the radiator and try again; if it keeps failing, bring the Bluetooth adapter closer.",
       "not_found": "The radiator is no longer seen over Bluetooth. Check that it is switched on and bring the Bluetooth adapter closer, then try again.",
       "pair_rejected": "The radiator refused pairing: it was not in pairing mode. Redo the 3 steps on the radiator, then click Submit right away.",
-      "no_radiator_in_pairing_mode": "No radiator in pairing mode yet. Put the radiator in pairing mode (Settings → Connection → Add), wait a few seconds, then click Submit to search again."
+      "no_radiator_in_pairing_mode": "No radiator in pairing mode yet. Put the radiator in pairing mode (Settings → Connection → Add), wait a few seconds, then click Submit to search again.",
+      "no_connectable_adapter": "No Bluetooth adapter can connect to a radiator. Add a Bluetooth adapter to Home Assistant (or an ESPHome Bluetooth proxy with active connections), then click Submit to try again."
     },
     "abort": {
       "already_configured": "This GoodHome account or radiator is already configured",

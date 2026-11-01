@@ -98,6 +98,16 @@ SERIAL = "0000AB000001"
 PAIRED_STATE = {"roomName": "COULOIR", "currentTemp": 19.0}
 
 
+@pytest.fixture(autouse=True)
+def bluetooth_scanners():
+    """Un adaptateur capable de se connecter ; recherche active simulée."""
+    with (
+        patch("custom_components.goodhome.ble_client.async_connectable_scanner_count", return_value=1) as count,
+        patch("custom_components.goodhome.ble_client.async_request_active_scan") as active_scan,
+    ):
+        yield count, active_scan
+
+
 @pytest.fixture
 def discovered():
     radiators = {BLE_ADDRESS: "GOODHOME-0001"}
@@ -155,7 +165,23 @@ async def test_local_flow_pair_failure_can_retry(hass, discovered, mock_pair, mo
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_local_flow_waits_for_a_radiator_in_pairing_mode(hass, mock_pair, mock_setup_entry):
+async def test_local_flow_without_connectable_adapter(hass, bluetooth_scanners, discovered):
+    count, _active_scan = bluetooth_scanners
+    count.return_value = 0
+    result = await _local_form(hass)
+    assert result["step_id"] == "local"
+    assert result["errors"] == {"base": "no_connectable_adapter"}
+    assert "address" not in result["data_schema"].schema
+
+    # Adaptateur ajouté entre-temps : Valider affiche la liste
+    count.return_value = 1
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["errors"] is None
+    assert result["data_schema"].schema["address"].container == {BLE_ADDRESS: "GOODHOME-0001"}
+
+
+async def test_local_flow_waits_for_a_radiator_in_pairing_mode(hass, bluetooth_scanners, mock_pair, mock_setup_entry):
+    _count, active_scan = bluetooth_scanners
     # Seuls des radiateurs sans nom (pas en mode appairage) sont visibles : ils ne sont pas proposés
     announced = {"56:82:18:00:00:94": "56:82:18:00:00:94"}
     with patch("custom_components.goodhome.ble_client.async_discovered_radiators", return_value=announced):
@@ -163,6 +189,8 @@ async def test_local_flow_waits_for_a_radiator_in_pairing_mode(hass, mock_pair, 
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "local"
         assert result["errors"] == {"base": "no_radiator_in_pairing_mode"}
+        # Recherche active pour un radiateur lointain
+        active_scan.assert_called_once_with(hass)
 
         # Le radiateur passe en mode appairage : Valider relance la recherche
         announced[BLE_ADDRESS] = "GOODHOME-0001"
