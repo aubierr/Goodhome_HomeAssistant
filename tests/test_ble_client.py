@@ -254,6 +254,8 @@ async def test_pairing_rejected_is_not_retried(hass):
 
     device = SimpleNamespace(address="11:22:33:44:55:66", name="GOODHOME-0001")
     with (
+        # Sous Linux, le vrai agent BlueZ passerait par D-Bus : oubli simulé
+        patch.object(ble_client, "_async_forget", AsyncMock()),
         patch.object(ble_client, "_async_wait_device", AsyncMock(return_value=device)),
         patch.object(ble_client, "_async_pair_once", AsyncMock(side_effect=ble_client.GoodHomeBlePairingRejected("x"))) as pair_once,
         pytest.raises(ble_client.GoodHomeBlePairingRejected),
@@ -347,7 +349,8 @@ async def test_deleting_local_device_removes_its_entry(hass, radiator):
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, SERIAL)})
+    # async_get_device est déprécié dans les versions récentes de Home Assistant
+    (device,) = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
 
     assert await async_remove_config_entry_device(hass, entry, device)
     await hass.async_block_till_done()
