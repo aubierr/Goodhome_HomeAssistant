@@ -2,6 +2,14 @@
   "config": {
     "step": {
       "user": {
+        "title": "Add GoodHome",
+        "description": "How should Home Assistant reach your radiators?",
+        "menu_options": {
+          "cloud": "GoodHome account (cloud)",
+          "local": "Local Bluetooth (adapter required)"
+        }
+      },
+      "cloud": {
         "title": "Configure GoodHome",
         "description": "Enter the email and password of your GoodHome app account.",
         "data": {
@@ -12,6 +20,17 @@
           "email": "Email address you use to sign in to the GoodHome app.",
           "password": "Password of your GoodHome app account."
         }
+      },
+      "local": {
+        "title": "Choose the radiator",
+        "description": "Radiators visible to your Home Assistant Bluetooth adapter. Each radiator is added on its own; a radiator already paired with Home Assistant appears under its address.",
+        "data": {
+          "address": "Radiator"
+        }
+      },
+      "pair": {
+        "title": "Pair {name}",
+        "description": "Put **{name}** in pairing mode, as in the GoodHome app:\n\n1. On the radiator, press **Settings** (gear icon).\n2. Press **Connection**.\n3. Press **Add**.\n\nThen click **Submit** right away: pairing takes up to a minute. Keep the radiator within range of the Bluetooth adapter (same room or the next one)."
       },
       "reauth_confirm": {
         "title": "Re-authenticate GoodHome",
@@ -27,15 +46,20 @@
     "error": {
       "cannot_connect": "Cannot connect to GoodHome",
       "invalid_auth": "Invalid credentials",
-      "unknown": "Unknown error"
+      "unknown": "Unknown error",
+      "pair_failed": "Pairing failed ({error}). Redo the 3 steps on the radiator and try again; if it keeps failing, bring the Bluetooth adapter closer.",
+      "not_found": "The radiator is no longer seen over Bluetooth. Check that it is switched on and bring the Bluetooth adapter closer, then try again.",
+      "pair_rejected": "The radiator refused pairing: it was not in pairing mode. Redo the 3 steps on the radiator, then click Submit right away."
     },
     "abort": {
-      "already_configured": "This GoodHome account is already configured",
+      "already_configured": "This GoodHome account or radiator is already configured",
       "reauth_successful": "Re-authentication successful",
       "cannot_connect": "Cannot connect to GoodHome",
       "invalid_auth": "Invalid credentials",
-      "unknown": "Unknown error"
-    }
+      "unknown": "Unknown error",
+      "no_devices_found": "No GoodHome radiator found over Bluetooth. Check that Home Assistant has a Bluetooth adapter within range of the radiator."
+    },
+    "flow_title": "{name}"
   },
   "entity": {
     "climate": {

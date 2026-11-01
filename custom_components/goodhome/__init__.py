@@ -13,7 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import CONF_ADDRESS, CONF_CONNECTION, CONF_SERIAL, CONNECTION_LOCAL, DOMAIN
 from .coordinator import GoodHomeCoordinator
 from .goodhome_api import GoodHomeAuthError, GoodHomeClient, GoodHomeError
 from .push import GoodHomePushClient
@@ -47,10 +47,10 @@ SERVICE_IDENTIFY_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 @dataclass
 class GoodHomeData:
-    """Données d'exécution d'un compte GoodHome (entry.runtime_data)."""
+    """Données d'exécution d'une entrée GoodHome (entry.runtime_data)."""
 
     coordinator: GoodHomeCoordinator
-    push: GoodHomePushClient
+    push: GoodHomePushClient | None  # Écoute temps réel du cloud, None en mode local
 
 
 type GoodHomeConfigEntry = ConfigEntry[GoodHomeData]
@@ -113,7 +113,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
-    """Connecter le compte, lire les radiateurs et écouter le temps réel."""
+    """Connecter le compte (ou le radiateur en local), lire les radiateurs et écouter le temps réel."""
+    if entry.data.get(CONF_CONNECTION) == CONNECTION_LOCAL:
+        return await _async_setup_local_entry(hass, entry)
+
     session = async_get_clientsession(hass)
     client = GoodHomeClient(session, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])
     try:
@@ -135,9 +138,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> 
     return True
 
 
+async def _async_setup_local_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
+    """Radiateur appairé en Bluetooth : les changements arrivent par notification."""
+    from .ble_client import GoodHomeBleClient
+
+    client = GoodHomeBleClient(hass, entry.data[CONF_ADDRESS], entry.data[CONF_SERIAL])
+    coordinator = GoodHomeCoordinator(hass, entry, client)
+    client.on_update = coordinator.async_set_updated_data
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady:
+        await client.async_close()
+        raise
+    entry.runtime_data = GoodHomeData(coordinator=coordinator, push=None)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> bool:
-    """Décharger le compte."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    """Décharger le compte (ou le radiateur)."""
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded and entry.data.get(CONF_CONNECTION) == CONNECTION_LOCAL:
+        await entry.runtime_data.coordinator.client.async_close()
+    return unloaded
 
 
 async def async_remove_config_entry_device(

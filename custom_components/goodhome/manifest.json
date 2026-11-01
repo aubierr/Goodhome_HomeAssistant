@@ -1,6 +1,15 @@
 {
   "domain": "goodhome",
   "name": "GoodHome",
+  "after_dependencies": [
+    "bluetooth"
+  ],
+  "bluetooth": [
+    {
+      "local_name": "GOODHOME-*",
+      "connectable": true
+    }
+  ],
   "categories": [
     "climate.thermostats_heating"
   ],
