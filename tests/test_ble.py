@@ -18,7 +18,7 @@ from custom_components.goodhome.ble import (
 # Attributs réellement renvoyés par un radiateur (identifiants remplacés)
 RADIATOR_VALUES = {
     "roomName": "COULOIR", "fwVer": "01206.3 TO100", "codeName": "DLRIRFH1000", "deviceSN": "0000AB000001",
-    "roomID": "1413476531", "antifTemp": "70", "ecoTemp": "155", "comfTemp": "180", "targetTemp": "180",
+    "roomID": "1000000001", "antifTemp": "70", "ecoTemp": "155", "comfTemp": "180", "targetTemp": "180",
     "overrideTemp": "185", "currentTemp": "190", "humidity": "635", "ctnAdjust": "0", "targetMode": "60",
     "dutyCycle": "0", "window": "1", "occupancyStatus": "1", "selfLearning": "0", "noprog": "0",
     "windowTimeout": "15", "selfLearningCountDay": "0",
@@ -75,7 +75,7 @@ def test_from_radiator_matches_cloud_format():
     assert state["windowTimeOut"] == 15
     assert "windowTimeout" not in state
     # Textes et identifiants jamais convertis
-    assert state["roomID"] == "1413476531"
+    assert state["roomID"] == "1000000001"
     assert state["deviceSN"] == "0000AB000001"
     assert state["fwVer"] == "01206.3 TO100"
 

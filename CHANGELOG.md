@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fonctionnement.
+
+### Ajouté
+- 📶 **Mode Bluetooth local**, sans compte ni cloud : à l'ajout de l'intégration, un menu propose « Compte GoodHome (cloud) » ou « Bluetooth local (adaptateur nécessaire) »
+- 🔗 Appairage guidé : choix du radiateur, procédure à faire sur le radiateur (Réglages → Connexion → Ajouter), puis appairage automatique. Chaque radiateur devient une entrée, nommée d'après sa pièce, avec les mêmes entités qu'en mode cloud
+- 🔎 Radiateurs `GOODHOME-*` à portée détectés automatiquement (carte dans **Découvertes**) ; un radiateur déjà appairé est listé avec son nom et son adresse, un radiateur déjà ajouté n'est plus proposé
+- ⚡ En local, une commande est confirmée en une dizaine de secondes (45 s à 2 min en cloud), et un changement fait sur le radiateur arrive tout de suite par notification
+- 💬 Erreurs d'appairage expliquées : radiateur introuvable (trop loin), appairage refusé (pas en mode appairage), échec avec le détail technique
+- 📖 [docs/BLUETOOTH.md](docs/BLUETOOTH.md) : protocole Bluetooth retrouvé dans l'application GoodHome Connect (service, trames, commandes, encodage des valeurs, limites connues)
+- 🩺 Diagnostics : mode de connexion (`connection`) ; en local, adresse Bluetooth, numéro de série et nom du Wi-Fi sont masqués
+
+### Modifié
+- 🧭 Le formulaire de connexion au compte cloud est précédé du menu de choix du mode
+- 🧪 136 tests, 84 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
+
+### Limites connues du mode local
+- 📡 Portée du Bluetooth : vers −80 dBm, la connexion peut demander plusieurs essais ; un proxy Bluetooth ESPHome près des radiateurs règle le problème
+- ❔ Version matérielle et code défaut non transmis en Bluetooth (version « Unknown », capteur Problème toujours à OK)
+- 🧪 Bouton Identifier et changements de mode pas encore vérifiés sur un vrai radiateur en Bluetooth (températures de consigne vérifiées)
+
 ## [2.1.1] - 2026-10-31
 
 ### Corrigé
