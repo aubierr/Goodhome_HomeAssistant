@@ -2,6 +2,14 @@
   "config": {
     "step": {
       "user": {
+        "title": "Añadir GoodHome",
+        "description": "¿Cómo debe Home Assistant conectarse con sus radiadores?",
+        "menu_options": {
+          "cloud": "Cuenta GoodHome (nube)",
+          "local": "Bluetooth local (requiere adaptador)"
+        }
+      },
+      "cloud": {
         "title": "Configurar GoodHome",
         "description": "Introduce el correo electrónico y la contraseña de tu cuenta de la aplicación GoodHome.",
         "data": {
@@ -12,6 +20,17 @@
           "email": "Correo electrónico con el que inicias sesión en la aplicación GoodHome.",
           "password": "Contraseña de tu cuenta de la aplicación GoodHome."
         }
+      },
+      "local": {
+        "title": "Elegir el radiador",
+        "description": "1. Ponga el radiador en modo emparejamiento, como en la aplicación GoodHome: en el radiador, pulse **Ajustes** (icono de engranaje), luego **Conexión** y luego **Añadir**.\n2. Aparecerá abajo con su nombre (**GOODHOME-XXXX**): elíjalo.\n\nUn radiador solo muestra su nombre en modo emparejamiento. Un radiador ya emparejado con Home Assistant aparece con su dirección. Cada radiador se añade por separado.",
+        "data": {
+          "address": "Radiador"
+        }
+      },
+      "pair": {
+        "title": "Emparejar {name}",
+        "description": "**{name}** está en modo emparejamiento. Haga clic enseguida en **Enviar**: el emparejamiento tarda hasta un minuto.\n\nSi el modo emparejamiento ha terminado entretanto, repita los 3 pasos en el radiador (**Ajustes** → **Conexión** → **Añadir**) justo antes de enviar. Mantenga el radiador al alcance del adaptador Bluetooth (misma habitación o la de al lado)."
       },
       "reauth_confirm": {
         "title": "Volver a autenticar GoodHome",
@@ -27,15 +46,21 @@
     "error": {
       "cannot_connect": "No se puede conectar con GoodHome",
       "invalid_auth": "Credenciales no válidas",
-      "unknown": "Error desconocido"
+      "unknown": "Error desconocido",
+      "pair_failed": "El emparejamiento ha fallado ({error}). Repita los 3 pasos en el radiador y vuelva a intentarlo; si sigue fallando, acerque el adaptador Bluetooth.",
+      "not_found": "El radiador ya no se ve por Bluetooth. Compruebe que está encendido y acerque el adaptador Bluetooth; luego vuelva a intentarlo.",
+      "pair_rejected": "El radiador ha rechazado el emparejamiento: no estaba en modo emparejamiento. Repita los 3 pasos en el radiador y haga clic enseguida en Enviar.",
+      "no_radiator_in_pairing_mode": "Todavía no hay ningún radiador en modo emparejamiento. Ponga el radiador en modo emparejamiento (Ajustes → Conexión → Añadir), espere unos segundos y haga clic en Enviar para buscar de nuevo.",
+      "no_connectable_adapter": "Ningún adaptador Bluetooth puede conectarse a un radiador. Añada un adaptador Bluetooth a Home Assistant (o un proxy Bluetooth ESPHome con conexiones activas) y haga clic en Enviar para volver a intentarlo."
     },
     "abort": {
-      "already_configured": "Esta cuenta de GoodHome ya está configurada",
+      "already_configured": "Esta cuenta o este radiador GoodHome ya está configurado",
       "reauth_successful": "Reautenticación correcta",
       "cannot_connect": "No se puede conectar con GoodHome",
       "invalid_auth": "Credenciales no válidas",
       "unknown": "Error desconocido"
-    }
+    },
+    "flow_title": "{name}"
   },
   "entity": {
     "climate": {

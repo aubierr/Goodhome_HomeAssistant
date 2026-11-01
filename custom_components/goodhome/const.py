@@ -2,6 +2,15 @@
 
 DOMAIN = "goodhome"
 
+# Mode de connexion d'une entrée : compte cloud (par défaut, entrées d'avant la v2.2) ou Bluetooth local
+CONF_CONNECTION = "connection"
+CONNECTION_CLOUD = "cloud"
+CONNECTION_LOCAL = "local"
+# Entrée locale : un radiateur appairé
+CONF_ADDRESS = "address"  # Adresse Bluetooth fixe, connue après l'appairage
+CONF_SERIAL = "serial"  # Numéro de série (identifiant du radiateur)
+CONF_BLE_NAME = "ble_name"  # Nom Bluetooth avant appairage (GOODHOME-XXXX)
+
 UPDATE_INTERVAL = 30  # Intervalle de relecture de l'API, en secours de l'écoute temps réel (secondes)
 DEBOUNCE_DELAY = 3  # Délai avant d'envoyer la commande de température (secondes)
 # Le radiateur applique une commande en 45 s à 2 min (mesuré sur l'API réelle)

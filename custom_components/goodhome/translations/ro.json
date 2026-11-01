@@ -2,6 +2,14 @@
   "config": {
     "step": {
       "user": {
+        "title": "Adaugă GoodHome",
+        "description": "Cum trebuie Home Assistant să comunice cu radiatoarele?",
+        "menu_options": {
+          "cloud": "Cont GoodHome (cloud)",
+          "local": "Bluetooth local (necesită adaptor)"
+        }
+      },
+      "cloud": {
         "title": "Configurare GoodHome",
         "description": "Introduceți adresa de email și parola contului din aplicația GoodHome.",
         "data": {
@@ -12,6 +20,17 @@
           "email": "Adresa de email folosită pentru autentificarea în aplicația GoodHome.",
           "password": "Parola contului din aplicația GoodHome."
         }
+      },
+      "local": {
+        "title": "Alege radiatorul",
+        "description": "1. Pune radiatorul în modul de asociere, ca în aplicația GoodHome: pe radiator, apasă **Setări** (pictograma roată dințată), apoi **Conexiune**, apoi **Adaugă**.\n2. Apare mai jos sub numele său (**GOODHOME-XXXX**): alege-l.\n\nUn radiator își afișează numele doar în modul de asociere. Un radiator deja asociat cu Home Assistant apare cu adresa sa. Fiecare radiator se adaugă separat.",
+        "data": {
+          "address": "Radiator"
+        }
+      },
+      "pair": {
+        "title": "Asociază {name}",
+        "description": "**{name}** este în modul de asociere. Apasă imediat **Trimite**: asocierea durează până la un minut.\n\nDacă modul de asociere s-a oprit între timp, refă cei 3 pași pe radiator (**Setări** → **Conexiune** → **Adaugă**) chiar înainte de a trimite. Ține radiatorul în raza adaptorului Bluetooth (aceeași cameră sau cea alăturată)."
       },
       "reauth_confirm": {
         "title": "Reautentificare GoodHome",
@@ -27,15 +46,21 @@
     "error": {
       "cannot_connect": "Nu se poate conecta la GoodHome",
       "invalid_auth": "Date de autentificare nevalide",
-      "unknown": "Eroare necunoscută"
+      "unknown": "Eroare necunoscută",
+      "pair_failed": "Asocierea a eșuat ({error}). Refă cei 3 pași pe radiator și încearcă din nou; dacă tot nu merge, apropie adaptorul Bluetooth.",
+      "not_found": "Radiatorul nu mai este vizibil prin Bluetooth. Verifică dacă este pornit și apropie adaptorul Bluetooth, apoi încearcă din nou.",
+      "pair_rejected": "Radiatorul a refuzat asocierea: nu era în modul de asociere. Refă cei 3 pași pe radiator, apoi apasă imediat Trimite.",
+      "no_radiator_in_pairing_mode": "Niciun radiator în modul de asociere deocamdată. Pune radiatorul în modul de asociere (Setări → Conexiune → Adaugă), așteaptă câteva secunde, apoi apasă Trimite pentru a căuta din nou.",
+      "no_connectable_adapter": "Niciun adaptor Bluetooth nu se poate conecta la un radiator. Adaugă un adaptor Bluetooth în Home Assistant (sau un proxy Bluetooth ESPHome cu conexiuni active), apoi apasă Trimite pentru a încerca din nou."
     },
     "abort": {
-      "already_configured": "Acest cont GoodHome este deja configurat",
+      "already_configured": "Acest cont sau acest radiator GoodHome este deja configurat",
       "reauth_successful": "Reautentificare reușită",
       "cannot_connect": "Nu se poate conecta la GoodHome",
       "invalid_auth": "Date de autentificare nevalide",
       "unknown": "Eroare necunoscută"
-    }
+    },
+    "flow_title": "{name}"
   },
   "entity": {
     "climate": {

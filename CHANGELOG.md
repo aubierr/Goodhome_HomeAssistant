@@ -5,6 +5,37 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.0] - 2026-11-01
+
+Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fonctionnement.
+
+### Ajouté
+- 📶 **Mode Bluetooth local**, sans compte ni cloud : à l'ajout de l'intégration, un menu propose « Compte GoodHome (cloud) » ou « Bluetooth local (adaptateur nécessaire) »
+- 🔗 Appairage guidé : le radiateur est d'abord mis en mode appairage (Réglages → Connexion → Ajouter), puis choisi sous son nom et appairé automatiquement. Chaque radiateur devient une entrée, nommée d'après sa pièce, avec les mêmes entités qu'en mode cloud
+- 🔎 Radiateurs `GOODHOME-*` en mode appairage détectés automatiquement (carte dans **Découvertes**) ; tant qu'aucun radiateur n'est visible sous son nom, Valider relance la recherche. Un radiateur déjà appairé est listé avec son nom et son adresse, un radiateur déjà ajouté n'est plus proposé
+- ⚡ En local, une commande est confirmée en une dizaine de secondes (45 s à 2 min en cloud), et un changement fait sur le radiateur arrive tout de suite par notification
+- 🗓️ En local, un mode manuel permanent coupe le planning du radiateur (`noprog`) et le retour en `auto` le rallume : sinon le radiateur reprend son planning au bout de quelques secondes. Le mode est envoyé avec sa température, comme dans l'application
+- 🛡️ Appairage robuste : ancien appairage oublié avant chaque essai, annonces de l'adresse oubliée ignorées, connexion sans redémarrage juste après l'appairage malgré l'adresse figée par Bleak
+- 🗑️ En local, supprimer l'appareil d'un radiateur supprime aussi son entrée
+- 💬 Erreurs d'appairage expliquées : radiateur introuvable (trop loin), appairage refusé (pas en mode appairage), échec avec le détail technique
+- 📵 Sans adaptateur Bluetooth capable de se connecter, l'ajout en local l'indique clairement au lieu d'une liste vide
+- ♻️ Supprimer un radiateur local permet de le redécouvrir (carte **Découvertes**) sans redémarrer Home Assistant
+- 📡 Recherche Bluetooth active demandée tant qu'aucun radiateur n'est visible en mode appairage et pendant l'appairage, pour les radiateurs lointains (Home Assistant récent)
+- 🩺 Radiateur introuvable ou connexion impossible : l'explication de Home Assistant (récepteurs, signal, connexions occupées) est ajoutée au message d'erreur (Home Assistant récent)
+- 📖 [docs/BLUETOOTH.md](docs/BLUETOOTH.md) : protocole Bluetooth retrouvé dans l'application GoodHome Connect (service, trames, commandes, changement de mode, encodage des valeurs, pièges de l'appairage, limites connues, pistes d'amélioration)
+- 🩺 Diagnostics : mode de connexion (`connection`) ; en local, adresse Bluetooth, numéro de série et nom du Wi-Fi sont masqués
+
+### Modifié
+- 🧭 Le formulaire de connexion au compte cloud est précédé du menu de choix du mode
+- 📖 README : bouton d'installation HACS en haut de page, étapes d'installation détaillées et bouton « Ajouter l'intégration »
+- 🧪 147 tests, 86 % du code. L'agent d'appairage BlueZ, qui ne fonctionne que sous Linux avec un adaptateur, est vérifié sur de vrais radiateurs et non par les tests
+
+### Limites connues du mode local
+- 📡 Portée du Bluetooth : vers −80 dBm, la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente ; rapprocher l'adaptateur ou ajouter un proxy Bluetooth ESPHome (appairage à travers un proxy pas encore testé)
+- ❔ Version matérielle et code défaut non transmis en Bluetooth (version « Unknown », capteur Problème toujours à OK)
+- 🔔 Bouton Identifier accepté par le radiateur en Bluetooth, mais bip non confirmé (mesures, consignes et changements de mode vérifiés)
+- 🐧 Appairage géré par BlueZ (Linux, dont Home Assistant OS) uniquement
+
 ## [2.1.1] - 2026-10-31
 
 ### Corrigé
