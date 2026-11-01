@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.1] - 2026-11-01
+
+Aucun changement de fonctionnement par rapport à la 2.2.0 : la 2.2.1 contient la correction des tests de validation.
+
+### Corrigé
+- ✅ Deux tests du mode Bluetooth échouaient sous Linux (validation GitHub) : l'oubli d'appairage BlueZ est simulé, et l'appareil est retrouvé sans `async_get_device`, refusé par les dernières versions de Home Assistant
+
 ## [2.2.0] - 2026-11-01
 
 Les comptes cloud déjà configurés ne changent pas : mêmes entités, même fonctionnement.
