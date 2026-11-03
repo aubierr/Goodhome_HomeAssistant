@@ -74,14 +74,14 @@ async def async_known_names() -> dict[str, str]:
         bus.disconnect()
 
 
-async def async_remove_bonds(address: str, name: str | None) -> int:
-    """Oublier les appairages BlueZ d'un radiateur (par adresse ou par nom) ; renvoie leur nombre.
+async def async_remove_bonds(address: str, name: str | None) -> list[str]:
+    """Oublier les appairages BlueZ d'un radiateur (par adresse ou par nom) ; renvoie leurs adresses.
 
     Un appairage raté laisse une clé que le radiateur n'a plus : chaque nouvel essai échoue
     alors avec « br-connection-key-missing ». Repartir d'un appairage neuf règle le problème.
     """
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
-    removed = 0
+    removed = []
     try:
         introspection = await bus.introspect("org.bluez", "/")
         manager = bus.get_proxy_object("org.bluez", "/", introspection).get_interface(
@@ -100,7 +100,7 @@ async def async_remove_bonds(address: str, name: str | None) -> int:
                 "org.bluez.Adapter1"
             )
             await adapter.call_remove_device(path)
-            removed += 1
+            removed.append(values.get("Address", "").upper())
             _LOGGER.debug("Removed stale Bluetooth pairing %s", path)
     finally:
         bus.disconnect()

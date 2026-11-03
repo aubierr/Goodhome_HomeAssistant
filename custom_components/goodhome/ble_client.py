@@ -7,6 +7,7 @@ Le Bluetooth de Home Assistant n'est importé qu'ici, pour ne pas l'imposer au m
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from collections.abc import Callable
@@ -257,27 +258,48 @@ async def _async_wait_device(
     return device
 
 
-async def _async_forget(*addresses: str, name: str | None) -> None:
-    """Oublier les appairages BlueZ du radiateur (sans dbus-fast hors Linux : rien à oublier)."""
+async def _async_forget(*addresses: str, name: str | None) -> frozenset[str]:
+    """Oublier les appairages BlueZ du radiateur ; renvoie les adresses oubliées.
+
+    Sans dbus-fast (hors Linux), rien à oublier. À travers un proxy ESPHome seul, BlueZ n'a
+    aucun appairage du radiateur : aucune adresse oubliée.
+    """
     try:
         from .ble_agent import async_remove_bonds
     except ImportError:
-        return
+        return frozenset()
+    forgotten: set[str] = set()
     for address in dict.fromkeys(addresses):
-        if await async_remove_bonds(address, name):
+        if removed := await async_remove_bonds(address, name):
             _LOGGER.debug("Forgot previous Bluetooth pairing of %s", name or address)
+            forgotten.update(removed)
+    return frozenset(forgotten)
+
+
+def _uses_bluez(device) -> bool:
+    """Appareil vu par un adaptateur BlueZ (chemin D-Bus), et non par un proxy ESPHome."""
+    details = getattr(device, "details", None)
+    return isinstance(details, dict) and "path" in details
+
+
+def _pairing_agent(device):
+    """Agent d'appairage BlueZ pour un appareil vu par BlueZ, rien pour un proxy ESPHome."""
+    if not _uses_bluez(device):
+        return contextlib.nullcontext()
+    from .ble_agent import PairingAgent
+
+    return PairingAgent(device.address)
 
 
 async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tuple[str, str, dict[str, Any]]:
     from bleak.exc import BleakError
     from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
-    from .ble_agent import PairingAgent
-
     try:
         # Appairer pendant la connexion : le radiateur coupe les connexions non appairées
-        # avant la fin de la découverte des services. L'agent accepte la confirmation demandée.
-        async with PairingAgent(device.address):
+        # avant la fin de la découverte des services. L'agent BlueZ accepte la confirmation
+        # demandée ; à travers un proxy ESPHome, c'est l'ESP32 qui répond, l'agent ne sert pas.
+        async with _pairing_agent(device):
             bleak_client = await establish_connection(
                 BleakClientWithServiceCache,
                 device,
@@ -311,9 +333,9 @@ async def async_pair_radiator(
 ) -> tuple[str, str, dict[str, Any]]:
     """Appairer un radiateur en mode appairage ; renvoie adresse fixe, numéro de série et état."""
     # Repartir d'un appairage neuf : une clé d'un essai précédent bloque tout nouvel appairage.
-    # Ensuite, seule une annonce reçue après l'oubli compte, et jamais à l'adresse oubliée.
-    await _async_forget(address, name=name)
-    exclude = frozenset({address.upper()})
+    # Ensuite, seule une annonce reçue après l'oubli compte, et jamais à une adresse oubliée.
+    # Rien n'est oublié (proxy ESPHome seul) : l'adresse actuelle du mode appairage reste valable.
+    exclude = await _async_forget(address, name=name)
     since = time.monotonic()
     device = await _async_wait_device(hass, address, name, since=since, exclude=exclude, active_scan=True)
     try:
