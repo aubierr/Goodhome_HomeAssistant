@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Corrigé
+- 📡 **Appairage et connexion à travers un proxy Bluetooth ESPHome**, vérifiés sur un vrai radiateur (ESPHome 2026.10, `io_capability: none`) :
+  - avec des proxys seuls, le radiateur en mode appairage n'était jamais trouvé (« not seen over Bluetooth recently »), alors qu'il venait d'être entendu
+  - l'appairage est demandé après la connexion (la demande pendant la connexion n'arrive pas jusqu'au proxy), sans agent BlueZ
+  - la clé gardée par l'ESP32 d'un essai précédent est oubliée avant d'appairer
+  - le chiffrement se terminant après la connexion, la première demande est renvoyée pendant 30 s, à l'appairage comme à chaque reconnexion (avant : « No answer from radiator »)
+
 ## [2.2.1] - 2026-11-01
 
 Aucun changement de fonctionnement par rapport à la 2.2.0 : la 2.2.1 contient la correction des tests de validation.
