@@ -229,7 +229,7 @@ async def test_pairing_retries_after_stale_key(hass):
 
     device = SimpleNamespace(address="11:22:33:44:55:66", name="GOODHOME-0001")
     paired = (ADDRESS, SERIAL, {"roomName": "COULOIR"})
-    remove = AsyncMock(return_value=1)
+    remove = AsyncMock(return_value=["4C:11:AE:00:00:01"])
     with (
         patch.object(ble_client, "_async_wait_device", AsyncMock(return_value=device)),
         patch.object(
@@ -376,11 +376,86 @@ async def test_pairing_ignores_the_forgotten_address(hass):
     with (
         patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}),
         patch("homeassistant.components.bluetooth", bluetooth, create=True),
-        patch.object(ble_client, "_async_forget", AsyncMock()),
+        patch.object(ble_client, "_async_forget", AsyncMock(return_value=frozenset({fixed}))),
         patch.object(ble_client, "_async_pair_once", AsyncMock(return_value=paired)) as pair_once,
     ):
         assert await ble_client.async_pair_radiator(hass, fixed, "GOODHOME-0006") == paired
     assert pair_once.await_args.args[1] == "pairing"
+
+
+async def test_pairing_through_esphome_proxy_keeps_the_current_address(hass):
+    import time
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    # Proxy ESPHome seul : BlueZ n'a aucun appairage à oublier, et le radiateur en mode
+    # appairage s'annonce toujours à l'adresse passée par l'ajout
+    address = "76:0E:D1:00:00:9C"
+    pairing = SimpleNamespace(address=address, time=time.monotonic() + 5, device="pairing",
+                              advertisement=SimpleNamespace(local_name="GOODHOME-0006"))
+    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [pairing])
+    paired = (address, SERIAL, {})
+    with (
+        patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}),
+        patch("homeassistant.components.bluetooth", bluetooth, create=True),
+        patch.object(ble_client, "_async_forget", AsyncMock(return_value=frozenset())),
+        patch.object(ble_client, "_async_pair_once", AsyncMock(return_value=paired)) as pair_once,
+    ):
+        assert await ble_client.async_pair_radiator(hass, address, "GOODHOME-0006") == paired
+    assert pair_once.await_args.args[1] == "pairing"
+
+
+async def test_pairing_through_esphome_proxy_pairs_after_connecting(hass):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    device = SimpleNamespace(address="5E:B1:1E:23:C4:5D", details={"source": "C8:85:41:68:73:42"})
+    bleak_client = SimpleNamespace(
+        address=device.address, is_connected=True, unpair=AsyncMock(), pair=AsyncMock(), disconnect=AsyncMock()
+    )
+    connect = AsyncMock(return_value=bleak_client)
+    retry_connector = SimpleNamespace(BleakClientWithServiceCache=object, establish_connection=connect)
+    with (
+        # bleak_retry_connector importe dbus-fast, absent hors Linux : module simulé
+        patch.dict("sys.modules", {"bleak_retry_connector": retry_connector}),
+        patch.object(GoodHomeBleClient, "async_adopt", AsyncMock(side_effect=GoodHomeBleError("stop"))),
+        patch.object(ble_client, "_async_wait_device", AsyncMock(side_effect=ble_client.GoodHomeBleNotFound("x"))),
+        pytest.raises(ble_client.GoodHomeBleNotFound),
+    ):
+        await ble_client._async_pair_once(hass, device, "GOODHOME-1FE9")
+    # Pas d'appairage pendant la connexion (perdu par le proxy), mais juste après,
+    # une fois oubliée la clé d'un essai précédent gardée par l'ESP32
+    assert connect.await_args.kwargs["pair"] is False
+    bleak_client.unpair.assert_awaited_once()
+    bleak_client.pair.assert_awaited_once()
+
+
+async def test_first_request_sent_again_while_pairing_finishes(hass):
+    # Via un proxy ESPHome, le radiateur ignore les messages d'avant la fin de l'appairage
+    fake = FakeRadiator(answer=False)
+    loop = asyncio.get_running_loop()
+    loop.call_later(0.3, setattr, fake, "answer", True)  # Réponses attendues 0,5 s dans les tests
+    client = GoodHomeBleClient(hass, ADDRESS)
+    await client.async_adopt(fake, attempts=3)
+    assert client.serial == SERIAL
+    assert [m["cmdName"] for m in fake.received].count("system.get_network_status") == 2
+
+
+def test_pairing_agent_only_for_bluez_devices():
+    import contextlib
+    from types import SimpleNamespace
+
+    from custom_components.goodhome import ble_client
+
+    # Appareil relayé par un proxy ESPHome : pas de chemin D-Bus, pas d'agent BlueZ
+    proxied = SimpleNamespace(address="76:0E:D1:00:00:9C", details={"source": "C8:85:41:68:73:42"})
+    assert isinstance(ble_client._pairing_agent(proxied), contextlib.nullcontext)
+    bluez = SimpleNamespace(details={"path": "/org/bluez/hci0/dev_76_0E_D1_00_00_9C", "props": {}})
+    assert ble_client._uses_bluez(bluez)
 
 
 async def test_remove_local_entry_allows_rediscovery(hass):

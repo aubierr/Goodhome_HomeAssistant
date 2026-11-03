@@ -35,6 +35,17 @@ Pièges rencontrés pendant l'appairage, tous gérés par l'intégration :
 - **L'adresse figée par Bleak** : Bleak range chaque appareil BlueZ sous l'adresse vue la première fois et ne la met pas à jour. Juste après l'appairage, c'est l'adresse aléatoire du mode appairage, alors que BlueZ est passé à l'adresse fixe. Home Assistant range alors les annonces sous l'ancienne adresse et répond « no scanner currently has it in its discovered devices » pour l'adresse fixe, jusqu'à son redémarrage. L'intégration reconnaît ces annonces à l'adresse BlueZ jointe à chacune (`platform_data`) et se connecte par l'entrée de Bleak, qui pointe vers le bon chemin BlueZ.
 - **Le chemin BlueZ** : le chemin D-Bus d'un appareil appairé (`/org/bluez/hci0/dev_…`) reste celui de l'adresse aléatoire de l'appairage ; seule la propriété `Address` passe à l'adresse fixe.
 
+### À travers un proxy Bluetooth ESPHome
+
+Vérifié sur un vrai radiateur avec ESPHome 2026.10.2 (firmware `esp32-generic` des proxys Bluetooth). L'appairage et la clé sont alors gardés par l'ESP32, pas par BlueZ : le radiateur liste l'ESP32 parmi ses appareils appairés, sous son adresse Bluetooth (ex. `C88541687342`).
+
+- **Réglage de l'ESP32** : `esp32_ble: io_capability: none` (valeur par défaut). Avec `display_yes_no`, le radiateur demande une confirmation que le firmware ESPHome n'envoie jamais : le chiffrement ne se termine pas et le radiateur ne répond à rien.
+- **Appairage après la connexion** : `pair=True` n'arrive pas jusqu'au proxy (la connexion reste non chiffrée). L'intégration se connecte sans appairer, puis demande l'appairage (`pair()`).
+- **Clé gardée par l'ESP32** : comme BlueZ, l'ESP32 garde la clé d'un essai précédent, que le radiateur n'a plus si l'appareil a été retiré de sa liste. L'intégration l'oublie (`unpair()`) avant d'appairer. L'ESP32 coupe alors la connexion sans que Bleak le voie tout de suite : appairer aussitôt échoue avec l'erreur 102, l'intégration se reconnecte donc d'abord.
+- **Chiffrement tardif** : à travers un proxy, le chiffrement se termine plusieurs secondes après la connexion, et le radiateur ignore les messages reçus avant. Après un appairage comme à chaque reconnexion, l'intégration renvoie donc sa première demande (`system.get_network_status`) pendant 30 s, en refaisant l'abonnement aux notifications entre deux envois.
+- **Choix du proxy** : Home Assistant passe par le récepteur qui a entendu le radiateur, même faiblement (−94 dBm constaté) quand il est le seul à avoir capté la nouvelle adresse du mode appairage. Pour appairer, débrancher les proxys trop lointains, ou viser −80 dBm ou mieux.
+- **Radiateur bloqué** : après plusieurs essais ratés, le radiateur peut continuer à s'annoncer tout en refusant les connexions (`Connection open failed, status=133`). Couper son alimentation 30 s le remet en état.
+
 Le radiateur garde la liste des appareils appairés (`bluetoothPaired`, voir plus bas). Appairer Home Assistant n'a pas retiré le téléphone déjà appairé lors des essais.
 
 ## Format des trames
@@ -174,12 +185,13 @@ Le Bluetooth de Home Assistant n'est importé qu'à l'intérieur des fonctions d
 
 ## Limites connues
 
-- **Portée** : le Bluetooth Low Energy porte à une pièce ou deux. Vers −80 dBm, les annonces du radiateur n'arrivent que de temps en temps : la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente en mode appairage (constaté sur un radiateur à −80 dBm). Rapprocher l'adaptateur, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) près des radiateurs, règle ce problème (voir les pistes plus bas pour l'appairage à travers un proxy).
+- **Portée** : le Bluetooth Low Energy porte à une pièce ou deux. Vers −80 dBm, les annonces du radiateur n'arrivent que de temps en temps : la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente en mode appairage (constaté sur un radiateur à −80 dBm). Rapprocher l'adaptateur, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) près des radiateurs, règle ce problème (voir [À travers un proxy Bluetooth ESPHome](#à-travers-un-proxy-bluetooth-esphome)).
 - **Une connexion par radiateur** : chaque radiateur est une entrée séparée. Le radiateur coupe les connexions inactives ; l'intégration se reconnecte à l'opération suivante.
 - **Vérifié sur un vrai radiateur** : lecture de tous les attributs, températures de consigne, passage en chauffage manuel et retour au planning (confirmés en une dizaine de secondes), changements faits sur le radiateur reçus aussitôt.
 - **Partiellement vérifié** : le bouton Identifier (`ping`) est acquitté par le radiateur, mais son bip n'a pas été confirmé.
 - **Programmation horaire et mises à jour du firmware** : non prises en charge.
-- **Appairage hors Linux** : l'agent d'appairage passe par BlueZ (D-Bus). Sans BlueZ (Home Assistant sous Windows ou macOS), l'appairage n'est pas géré.
+- **Appairage hors Linux** : l'agent d'appairage passe par BlueZ (D-Bus). Sans BlueZ (Home Assistant sous Windows ou macOS), l'appairage n'est géré qu'à travers un proxy ESPHome.
+- **Un proxy par radiateur** : la clé est gardée par l'ESP32 qui a appairé le radiateur. Un autre ESP32, ou l'adaptateur de Home Assistant, ne peut pas s'y connecter sans nouvel appairage.
 
 ## Pistes d'amélioration
 
@@ -187,4 +199,5 @@ Relevées dans la documentation de Home Assistant et des bibliothèques Bluetoot
 
 - **Dépendance `bluetooth_adapters`** dans le manifeste, recommandée par Home Assistant pour les intégrations Bluetooth ([guide Bluetooth](https://contributors.home-assistant.io/core/integrations/bluetooth/)). Elle imposerait le Bluetooth aux utilisateurs du mode cloud : à peser.
 - **`ble_device_callback`** de bleak-retry-connector n'est plus appelé dans les versions récentes ([documentation](https://bleak-retry-connector.readthedocs.io/en/latest/usage.html), constaté dans la 4.7.1) : l'intégration ne l'utilise plus et passe directement l'appareil le plus récent.
-- **Appairage à travers un proxy ESPHome** : la prise en charge dépend du firmware du proxy, qui doit annoncer la fonction d'appairage ([bleak-esphome](https://bleak-esphome.readthedocs.io/en/latest/_sources/architecture.md.txt), [ESPHome](https://api-docs-dev.esphome.io/bluetooth__proxy_8h_source)). Pour un thermostat qui demande lui aussi une confirmation, des utilisateurs signalent un appairage réussi avec `esp32_ble: io_capability: display_yes_no` côté ESP32 ([intégration Daikin Madoka](https://community.home-assistant.io/t/custom-integration-daikin-madoka-brc1h-bluetooth-thermostat-via-ha-or-esphome/984675)). L'agent BlueZ de l'intégration ne s'applique pas à un proxy : à tester.
+- **Proxy choisi pour un radiateur appairé** : Home Assistant choisit le récepteur au signal, sans savoir lequel garde la clé. Avec plusieurs proxys à portée d'un même radiateur, une connexion peut passer par un ESP32 non appairé : à surveiller.
+- **Nom affiché par le radiateur** : un ESP32 apparaît sous son adresse. L'application nomme le téléphone avec `system.bluetooth_set_mobile_device_name` ; l'intégration pourrait en faire autant (« Home Assistant »), format de la commande à relever.

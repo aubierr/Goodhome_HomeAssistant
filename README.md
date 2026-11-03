@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -46,7 +46,7 @@ Deux modes de connexion, au choix à l'ajout de l'intégration :
 
 - Home Assistant **2025.1** ou plus récent (testé de la 2025.1 à la dernière version)
 - **Mode cloud** : vos radiateurs doivent être connectés au cloud GoodHome, depuis l'application mobile officielle **GoodHome** (Android et iOS).
-- **Mode Bluetooth local** : l'intégration **Bluetooth** de Home Assistant doit avoir un adaptateur capable de se connecter, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) avec les connexions actives (`active: true`), à portée des radiateurs (même pièce ou pièce voisine). Il faut aussi pouvoir mettre le radiateur en mode appairage depuis ses boutons. Ce mode a été testé avec Home Assistant OS ; l'appairage passe par BlueZ (Linux).
+- **Mode Bluetooth local** : l'intégration **Bluetooth** de Home Assistant doit avoir un adaptateur capable de se connecter, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) avec les connexions actives (`active: true`), à portée des radiateurs (même pièce ou pièce voisine). Il faut aussi pouvoir mettre le radiateur en mode appairage depuis ses boutons. Ce mode a été testé avec Home Assistant OS, avec un adaptateur (appairage par BlueZ, Linux) et avec des proxys ESPHome 2026.10. Pour un proxy, laissez `esp32_ble: io_capability` à sa valeur par défaut (`none`) : avec `display_yes_no`, l'appairage ne se termine jamais.
 
 ### Via HACS (recommandé)
 
@@ -273,7 +273,8 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 ### Bluetooth local : le radiateur n'apparaît pas ou l'appairage échoue
 - **« Aucun adaptateur Bluetooth ne peut se connecter à un radiateur »** : l'intégration **Bluetooth** de Home Assistant n'a aucun adaptateur, ou seulement des proxys ESPHome en écoute passive. Ajoutez un adaptateur, ou activez les connexions du proxy (`active: true`), puis cliquez sur Valider
 - **« Aucun radiateur en mode appairage pour l'instant »** : mettez le radiateur en mode appairage (Réglages → Connexion → Ajouter), attendez quelques secondes, puis cliquez sur Valider. Une recherche Bluetooth active est lancée pour aider un radiateur éloigné à apparaître. Un radiateur déjà ajouté n'est plus proposé
-- **Un radiateur éloigné (vers −80 dBm) n'arrive pas à s'appairer** : ses annonces n'arrivent pas assez souvent. Rapprochez l'adaptateur Bluetooth (une rallonge USB suffit souvent) ou ajoutez un proxy Bluetooth ESPHome près du radiateur (l'appairage à travers un proxy n'a pas encore été testé, voir [docs/BLUETOOTH.md](docs/BLUETOOTH.md))
+- **Un radiateur éloigné (vers −80 dBm) n'arrive pas à s'appairer** : ses annonces n'arrivent pas assez souvent. Rapprochez l'adaptateur Bluetooth (une rallonge USB suffit souvent) ou ajoutez un proxy Bluetooth ESPHome près du radiateur. Pendant l'appairage, débranchez les proxys qui l'entendent mal (vers −90 dBm) : Home Assistant peut passer par eux
+- **À travers un proxy ESPHome, « No answer from radiator » à chaque essai** : vérifiez `esp32_ble: io_capability` (`none`, pas `display_yes_no`) et reflashez l'ESP32. Si le radiateur liste un appareil appairé à son nom en chiffres et lettres (l'adresse de l'ESP32, ex. `C88541687342`), supprimez-le avant de réessayer. Si l'ESP32 n'arrive même plus à se connecter, coupez l'alimentation du radiateur 30 s. Détails : [docs/BLUETOOTH.md](docs/BLUETOOTH.md#à-travers-un-proxy-bluetooth-esphome)
 - **« Le radiateur a refusé l'appairage »** : il n'était pas en mode appairage. Refaites les 3 étapes sur le radiateur (Réglages → Connexion → Ajouter), puis cliquez tout de suite sur Valider
 - **« Le radiateur n'est plus visible en Bluetooth »** : il est éteint ou trop loin. Sur les versions récentes de Home Assistant, les journaux indiquent pourquoi (récepteurs qui l'ont entendu, signal, connexions occupées)
 - **« L'appairage a échoué (…) »** : le détail technique est entre parenthèses. Un ancien appairage raté est oublié automatiquement à chaque essai : refaites simplement les 3 étapes et réessayez
