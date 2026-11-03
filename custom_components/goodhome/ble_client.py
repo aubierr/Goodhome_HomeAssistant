@@ -425,6 +425,8 @@ class GoodHomeBleClient:
                 await self._async_read_attributes()
             except GoodHomeBleError:
                 self._reachable = False
+                # Liaison peut-être encore ouverte mais muette : repartir d'une connexion neuve
+                await self.async_close()
                 raise
             self._reachable = True
         return self._devices()
@@ -432,11 +434,15 @@ class GoodHomeBleClient:
     async def async_set_state(self, device_id: str, parameters: dict[str, Any]) -> None:
         """Envoyer des paramètres au format de l'API cloud (ex. {"targetMode": 9})."""
         async with self._lock:
-            await self._async_ensure_connected()
             values = complete_mode_change(parameters, self._state)
-            reply = await self._async_command(
-                lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, values)
-            )
+            try:
+                await self._async_ensure_connected()
+                reply = await self._async_command(
+                    lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, values)
+                )
+            except GoodHomeBleError:
+                await self.async_close()
+                raise
         _LOGGER.debug("Sent %s to radiator %s over Bluetooth, reply: %s", values, self.serial, reply)
         # Relire tout de suite : la confirmation n'attend pas la prochaine relecture
         self.hass.async_create_background_task(self._async_refresh(), f"goodhome ble refresh {self.serial}")
@@ -610,9 +616,11 @@ class GoodHomeBleClient:
         _LOGGER.debug("Unhandled message from radiator %s: %s", self.address, message)
 
     @callback
-    def _on_disconnect(self, _client) -> None:
+    def _on_disconnect(self, client) -> None:
         # Le radiateur coupe les connexions inactives : on se reconnecte à la prochaine opération
         _LOGGER.debug("Radiator %s disconnected", self.address)
+        if self._client is not None and client is not self._client:
+            return  # Fin tardive d'une connexion précédente : la nouvelle reste valable
         self._client = None
         for reply in self._replies.values():
             if not reply.done():

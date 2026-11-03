@@ -158,6 +158,39 @@ async def test_no_answer_raises(hass, radiator):
         await client.async_get_devices()
 
 
+async def test_silent_radiator_gets_a_fresh_connection(hass, radiator):
+    # Liaison restée ouverte mais radiateur muet : ne pas réutiliser une connexion sans poignée de main
+    radiator.answer = False
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    with pytest.raises(GoodHomeBleError):
+        await client.async_get_devices()
+    assert radiator.is_connected is False
+
+    radiator.answer = True
+    radiator.received.clear()
+    devices = await client.async_get_devices()
+    assert devices[SERIAL]["connected"] is True
+    assert radiator.received[0]["cmdName"] == "system.get_network_status"
+
+
+async def test_failed_command_drops_the_connection(hass, radiator):
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    await client.async_get_devices()
+    radiator.answer = False
+    with pytest.raises(GoodHomeBleError):
+        await client.async_set_state(SERIAL, {"comfTemp": 20.5})
+    assert radiator.is_connected is False
+
+
+async def test_late_disconnect_of_previous_connection_is_ignored(hass, radiator):
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    await client.async_get_devices()
+    client._on_disconnect(FakeRadiator())
+    assert client._client is radiator
+    client._on_disconnect(radiator)
+    assert client._client is None
+
+
 async def test_local_entry_creates_entities(hass, radiator):
     entry = MockConfigEntry(
         domain=DOMAIN,
