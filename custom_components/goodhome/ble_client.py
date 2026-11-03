@@ -61,6 +61,7 @@ STALE_KEY_ERRORS = ("key-missing", "Unlikely Error", "UNLIKELY_ERROR")
 DEVICE_WAIT = 20  # Attente d'une annonce récente du radiateur (secondes)
 FRESH_ADVERTISEMENT = 10  # Âge maximal d'une annonce pour s'y connecter (secondes)
 CONNECT_WAIT = 30  # Attente d'une annonce avant chaque connexion (secondes)
+PROXY_PAIRING_ATTEMPTS = 3  # Envois de la première demande après un appairage via un proxy (×10 s)
 
 
 @callback
@@ -299,14 +300,42 @@ async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tup
         # Appairer pendant la connexion : le radiateur coupe les connexions non appairées
         # avant la fin de la découverte des services. L'agent BlueZ accepte la confirmation
         # demandée ; à travers un proxy ESPHome, c'est l'ESP32 qui répond, l'agent ne sert pas.
-        async with _pairing_agent(device):
-            bleak_client = await establish_connection(
+        bluez = _uses_bluez(device)
+
+        async def _async_connect():
+            return await establish_connection(
                 BleakClientWithServiceCache,
                 device,
                 name or device.address,
                 max_attempts=3,
-                pair=True,
+                pair=bluez,
             )
+
+        async with _pairing_agent(device):
+            bleak_client = await _async_connect()
+        if not bluez:
+            # pair=True n'arrive pas jusqu'au proxy ESPHome (constaté avec ESPHome 2026.10) :
+            # la connexion reste non chiffrée et le radiateur ne répond pas. Appairer ensuite,
+            # après avoir oublié la clé d'un essai précédent gardée par l'ESP32 : le radiateur
+            # ne l'a plus, et le chiffrement avec cette clé n'aboutit jamais.
+            try:
+                try:
+                    await bleak_client.unpair()
+                except (BleakError, NotImplementedError) as err:
+                    _LOGGER.debug("No previous ESPHome pairing of %s to forget: %s", name or device.address, err)
+                else:
+                    # L'ESP32 coupe la connexion en oubliant la clé, sans que is_connected le
+                    # sache encore : appairer tout de suite échoue (erreur 102). Se reconnecter.
+                    _LOGGER.debug("Forgot previous ESPHome pairing of %s", name or device.address)
+                    with contextlib.suppress(Exception):
+                        await bleak_client.disconnect()
+                    bleak_client = await _async_connect()
+                await bleak_client.pair()
+            except BaseException:
+                await bleak_client.disconnect()
+                raise
+    except NotImplementedError as err:  # Proxy ESPHome sans la fonction d'appairage
+        raise GoodHomeBleError(f"Pairing failed: {err}") from err
     except (BleakError, TimeoutError, OSError) as err:
         if any(text in str(err) for text in REJECTED_ERRORS):
             raise GoodHomeBlePairingRejected(f"Pairing rejected: {err}") from err
@@ -316,7 +345,9 @@ async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tup
     client = GoodHomeBleClient(hass, bleak_client.address)
     try:
         try:
-            await client.async_adopt(bleak_client)
+            # À travers un proxy ESPHome, l'appairage se termine après la réponse de pair() (jusqu'à
+            # 30 s) et le radiateur ignore les messages d'avant : renvoyer le premier plus longtemps
+            await client.async_adopt(bleak_client, attempts=1 if bluez else PROXY_PAIRING_ATTEMPTS)
         except GoodHomeBleError as err:
             # Juste après l'appairage, le premier échange échoue parfois : se reconnecter
             _LOGGER.debug("First exchange after pairing failed (%s), reconnecting", err)
@@ -414,10 +445,10 @@ class GoodHomeBleClient:
         """Faire biper le radiateur."""
         await self.async_set_state(device_id, {"ping": 1})
 
-    async def async_adopt(self, bleak_client) -> None:
+    async def async_adopt(self, bleak_client, attempts: int = 1) -> None:
         """Utiliser une connexion déjà ouverte (celle de l'appairage)."""
         async with self._lock:
-            await self._async_start(bleak_client)
+            await self._async_start(bleak_client, attempts)
 
     async def async_close(self) -> None:
         """Se déconnecter."""
@@ -458,19 +489,34 @@ class GoodHomeBleClient:
             raise GoodHomeBleError(
                 _with_reachability(self.hass, f"Cannot connect to radiator {self.address}: {err}", self.address)
             ) from err
-        await self._async_start(client)
+        # À travers un proxy ESPHome, le chiffrement se termine après la connexion : renvoyer plus longtemps
+        await self._async_start(client, 1 if _uses_bluez(device) else PROXY_PAIRING_ATTEMPTS)
 
-    async def _async_start(self, client) -> None:
-        """S'abonner aux réponses, puis demander au radiateur son identifiant et le nôtre."""
+    async def _async_start(self, client, attempts: int = 1) -> None:
+        """S'abonner aux réponses, puis demander au radiateur son identifiant et le nôtre.
+
+        attempts : nombre d'envois de la demande, quand l'appairage peut finir après la connexion.
+        """
         from bleak.exc import BleakError
 
         self._client = client
         self._decoder = FrameDecoder()
         try:
             await client.start_notify(NOTIFY_UUID, self._on_notify)
-            status = await self._async_command(
-                lambda cmd_id: build_system_command("system.get_network_status", cmd_id)
-            )
+            for attempt in range(1, attempts + 1):
+                try:
+                    status = await self._async_command(
+                        lambda cmd_id: build_system_command("system.get_network_status", cmd_id)
+                    )
+                    break
+                except GoodHomeBleError as err:
+                    if attempt == attempts or not client.is_connected:
+                        raise
+                    _LOGGER.debug("No answer yet from %s (%s), asking again", self.address, err)
+                    # Abonnement fait avant la fin de l'appairage : le refaire, une fois chiffré
+                    with contextlib.suppress(Exception):
+                        await client.stop_notify(NOTIFY_UUID)
+                    await client.start_notify(NOTIFY_UUID, self._on_notify)
         except (BleakError, OSError) as err:
             raise GoodHomeBleError(f"Bluetooth error with radiator {self.address}: {err}") from err
         # srcID « module.<série> » : le radiateur ; dstID : l'identifiant qu'il nous attribue
