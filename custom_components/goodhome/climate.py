@@ -73,7 +73,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
     _attr_name = None
     # Traductions du preset « manual » et des attributs (eco_reason, temperature_range...)
     _attr_translation_key = "radiator"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.PRESET_MODE
@@ -110,7 +110,7 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
             self._last_on_mode = mode
 
     @property
-    def current_temperature(self):
+    def native_current_temperature(self):
         """Température ambiante."""
         return self.state_data.get("currentTemp")
 
@@ -120,9 +120,15 @@ class GoodHomeClimate(GoodHomeEntity, ClimateEntity):
         return self.state_data.get("humidity")
 
     @property
-    def target_temperature(self):
+    def native_target_temperature(self):
         """Température de consigne."""
         return self.state_data.get("targetTemp")
+
+    # Avant Home Assistant 2026.11, seuls ces noms existent ; ensuite ils sont signalés comme obsolètes
+    if not hasattr(ClimateEntity, "native_temperature_unit"):
+        _attr_temperature_unit = _attr_native_temperature_unit
+        current_temperature = native_current_temperature
+        target_temperature = native_target_temperature
 
     @property
     def hvac_mode(self):

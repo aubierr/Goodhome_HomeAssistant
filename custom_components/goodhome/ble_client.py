@@ -191,7 +191,13 @@ def _is_at(info, address: str) -> bool:
 
 @callback
 def _async_fresh_device(
-    hass: HomeAssistant, address: str, name: str | None, *, since: float | None = None, exclude: frozenset = frozenset()
+    hass: HomeAssistant,
+    address: str,
+    name: str | None,
+    *,
+    since: float | None = None,
+    exclude: frozenset = frozenset(),
+    also_named: str | None = None,
 ):
     """Appareil d'après la dernière annonce récente du radiateur, None s'il n'en a pas envoyé.
 
@@ -209,6 +215,9 @@ def _async_fresh_device(
     since / exclude (appairage) : ignorer les annonces d'avant l'oubli de l'ancien appairage, et
     l'adresse oubliée. BlueZ joint aussi le nom gardé en mémoire aux annonces relayées : sans cela,
     une dernière annonce de l'ancienne adresse fixe passerait pour celle du mode appairage.
+
+    also_named (radiateur appairé) : accepter aussi ce nom dans l'annonce. À travers un proxy
+    ESPHome, le radiateur n'a pas d'adresse fixe : l'adresse notée à l'appairage change avec le temps.
     """
     from homeassistant.components import bluetooth
 
@@ -217,7 +226,11 @@ def _async_fresh_device(
     fresh = [
         info
         for info in bluetooth.async_discovered_service_info(hass, connectable=True)
-        if (_advertised_name(info) == name if by_name else _is_at(info, address))
+        if (
+            _advertised_name(info) == name
+            if by_name
+            else _is_at(info, address) or (also_named is not None and _advertised_name(info) == also_named)
+        )
         and now - info.time < FRESH_ADVERTISEMENT
         and (since is None or info.time >= since)
         and info.address.upper() not in exclude
@@ -239,15 +252,18 @@ async def _async_wait_device(
     since: float | None = None,
     exclude: frozenset = frozenset(),
     active_scan: bool = False,
+    also_named: str | None = None,
 ):
     """Attendre une annonce récente du radiateur (voir _async_fresh_device).
 
-    active_scan (appairage) : demander une recherche active si le radiateur n'est pas entendu.
+    active_scan : demander une recherche active si le radiateur n'est pas entendu.
     """
     loop = asyncio.get_running_loop()
     deadline = loop.time() + timeout
     scanning = False
-    while (device := _async_fresh_device(hass, address, name, since=since, exclude=exclude)) is None:
+    while (
+        device := _async_fresh_device(hass, address, name, since=since, exclude=exclude, also_named=also_named)
+    ) is None:
         if loop.time() >= deadline:
             raise GoodHomeBleNotFound(
                 _with_reachability(hass, f"Radiator {name or address} not seen over Bluetooth recently", address)
@@ -386,11 +402,14 @@ async def async_pair_radiator(
 class GoodHomeBleClient:
     """Connexion Bluetooth à un radiateur appairé."""
 
-    def __init__(self, hass: HomeAssistant, address: str, serial: str | None = None) -> None:
+    def __init__(
+        self, hass: HomeAssistant, address: str, serial: str | None = None, ble_name: str | None = None
+    ) -> None:
         """Initialiser le client (aucune connexion avant la première lecture)."""
         self.hass = hass
         self.address = address
         self.serial = serial
+        self.ble_name = ble_name
         # Appelé avec les radiateurs quand celui-ci envoie de lui-même des changements
         self.on_update: Callable[[dict[str, dict]], None] | None = None
         self._client = None
@@ -425,6 +444,8 @@ class GoodHomeBleClient:
                 await self._async_read_attributes()
             except GoodHomeBleError:
                 self._reachable = False
+                # Liaison peut-être encore ouverte mais muette : repartir d'une connexion neuve
+                await self.async_close()
                 raise
             self._reachable = True
         return self._devices()
@@ -432,11 +453,15 @@ class GoodHomeBleClient:
     async def async_set_state(self, device_id: str, parameters: dict[str, Any]) -> None:
         """Envoyer des paramètres au format de l'API cloud (ex. {"targetMode": 9})."""
         async with self._lock:
-            await self._async_ensure_connected()
             values = complete_mode_change(parameters, self._state)
-            reply = await self._async_command(
-                lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, values)
-            )
+            try:
+                await self._async_ensure_connected()
+                reply = await self._async_command(
+                    lambda cmd_id: build_set_attr(self.serial, self._src_id, cmd_id, values)
+                )
+            except GoodHomeBleError:
+                await self.async_close()
+                raise
         _LOGGER.debug("Sent %s to radiator %s over Bluetooth, reply: %s", values, self.serial, reply)
         # Relire tout de suite : la confirmation n'attend pas la prochaine relecture
         self.hass.async_create_background_task(self._async_refresh(), f"goodhome ble refresh {self.serial}")
@@ -475,8 +500,12 @@ class GoodHomeBleClient:
         from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
         # Loin de l'adaptateur, les annonces n'arrivent que de temps en temps : attendre la
-        # prochaine, Home Assistant ne se connecte qu'à un appareil entendu à l'instant
-        device = await _async_wait_device(self.hass, self.address, None, timeout=CONNECT_WAIT)
+        # prochaine, Home Assistant ne se connecte qu'à un appareil entendu à l'instant.
+        # Les proxys ESPHome en mode auto écoutent en passif : sans recherche active, le nom
+        # du radiateur peut tarder plusieurs minutes après un redémarrage de Home Assistant
+        device = await _async_wait_device(
+            self.hass, self.address, None, timeout=CONNECT_WAIT, active_scan=True, also_named=self.ble_name
+        )
         try:
             client = await establish_connection(
                 BleakClientWithServiceCache,
@@ -610,9 +639,11 @@ class GoodHomeBleClient:
         _LOGGER.debug("Unhandled message from radiator %s: %s", self.address, message)
 
     @callback
-    def _on_disconnect(self, _client) -> None:
+    def _on_disconnect(self, client) -> None:
         # Le radiateur coupe les connexions inactives : on se reconnecte à la prochaine opération
         _LOGGER.debug("Radiator %s disconnected", self.address)
+        if self._client is not None and client is not self._client:
+            return  # Fin tardive d'une connexion précédente : la nouvelle reste valable
         self._client = None
         for reply in self._replies.values():
             if not reply.done():

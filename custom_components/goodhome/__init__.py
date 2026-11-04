@@ -142,7 +142,9 @@ async def _async_setup_local_entry(hass: HomeAssistant, entry: GoodHomeConfigEnt
     """Radiateur appairé en Bluetooth : les changements arrivent par notification."""
     from .ble_client import GoodHomeBleClient
 
-    client = GoodHomeBleClient(hass, entry.data[CONF_ADDRESS], entry.data[CONF_SERIAL])
+    client = GoodHomeBleClient(
+        hass, entry.data[CONF_ADDRESS], entry.data[CONF_SERIAL], entry.data.get(CONF_BLE_NAME)
+    )
     coordinator = GoodHomeCoordinator(hass, entry, client)
     client.on_update = coordinator.async_set_updated_data
     try:
