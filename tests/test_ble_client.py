@@ -327,6 +327,30 @@ async def test_wait_device_uses_the_advertised_name(hass):
             await ble_client._async_wait_device(hass, old_pairing.address, None, timeout=0)
 
 
+async def test_paired_radiator_found_by_name_after_its_address_changed(hass):
+    import time
+
+    from custom_components.goodhome import ble_client
+
+    # À travers un proxy ESPHome : adresse de l'appairage périmée, seule l'adresse actuelle s'annonce
+    current = SimpleNamespace(
+        address="55:AD:8C:00:00:2A", time=time.monotonic() - 1,
+        advertisement=SimpleNamespace(local_name="GOODHOME-1FE9"), device="current",
+    )
+    other = SimpleNamespace(
+        address="41:98:21:00:00:99", time=time.monotonic() - 1,
+        advertisement=SimpleNamespace(local_name="GOODHOME-DFE5"), device="other",
+    )
+    bluetooth = SimpleNamespace(async_discovered_service_info=lambda _hass, connectable: [other, current])
+    with patch.dict("sys.modules", {"homeassistant.components.bluetooth": bluetooth}), patch(
+        "homeassistant.components.bluetooth", bluetooth, create=True
+    ):
+        found = await ble_client._async_wait_device(hass, "77:47:49:00:00:B0", None, also_named="GOODHOME-1FE9")
+        assert found == "current"
+        with pytest.raises(ble_client.GoodHomeBleNotFound):
+            await ble_client._async_wait_device(hass, "77:47:49:00:00:B0", None, timeout=0)
+
+
 async def test_mode_change_sent_with_temperatures(hass, radiator):
     client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
     await client.async_get_devices()
@@ -519,6 +543,25 @@ async def test_remove_local_entry_allows_rediscovery(hass):
         rediscover.reset_mock()
         await async_remove_entry(hass, MockConfigEntry(domain=DOMAIN, data={"email": "a@b.c"}))
         rediscover.assert_not_called()
+
+
+async def test_connection_wait_requests_active_scan(hass):
+    from unittest.mock import AsyncMock
+
+    from custom_components.goodhome import ble_client
+
+    wait = AsyncMock(side_effect=ble_client.GoodHomeBleNotFound("x"))
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL, "GOODHOME-0001")
+    with (
+        # bleak_retry_connector importe dbus-fast, absent hors Linux : module simulé
+        patch.dict("sys.modules", {"bleak_retry_connector": SimpleNamespace(
+            BleakClientWithServiceCache=object, establish_connection=AsyncMock()
+        )}),
+        patch.object(ble_client, "_async_wait_device", wait),
+        pytest.raises(ble_client.GoodHomeBleNotFound),
+    ):
+        await client._async_ensure_connected()
+    assert wait.await_args.kwargs["active_scan"] is True
 
 
 async def test_pairing_wait_requests_active_scan_and_explains(hass):
