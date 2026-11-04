@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.3] - 2026-11-04
+
+### Corrigé
+- 🌡️ **Avertissements de Home Assistant 2026.11 sur le thermostat** (`_attr_temperature_unit`, `current_temperature`, `target_temperature`, qui cesseront de fonctionner en 2027.11) : le thermostat utilise les nouveaux noms `native_*`. Les versions plus anciennes de Home Assistant restent prises en charge
+- 📡 **Reconnexion en Bluetooth local**, surtout à travers un proxy ESPHome :
+  - après un redémarrage de Home Assistant, une recherche active est demandée en attendant le radiateur : les proxys en mode `auto` écoutent en passif, et le message « not seen over Bluetooth recently » pouvait rester plusieurs minutes
+  - un radiateur appairé est aussi reconnu à son nom : son adresse peut changer à travers un proxy
+  - après un échange sans réponse ou raté, la connexion est refaite au lieu de réutiliser une liaison ouverte mais muette
+
 ## [2.2.2] - 2026-11-03
 
 ### Corrigé

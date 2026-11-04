@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -269,6 +269,7 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 ### L'intégration indique « Nouvelle tentative de configuration »
 - Mode cloud : le cloud GoodHome est injoignable. Home Assistant réessaie automatiquement, aucune action n'est nécessaire
 - Mode local : le radiateur n'a pas répondu en Bluetooth, en général parce qu'il est trop loin de l'adaptateur. Home Assistant réessaie automatiquement. Si cela se répète, rapprochez l'adaptateur (une rallonge USB suffit souvent) ou ajoutez un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) près du radiateur. Vers −80 dBm, la première connexion peut prendre près d'une minute
+- Mode local, juste après un redémarrage de Home Assistant : « not seen over Bluetooth recently (… never seen by any scanner …) » ne veut pas dire que le radiateur est absent. Home Assistant ne l'a pas encore réentendu depuis le redémarrage, l'intégration réessaie toute seule et demande une recherche active. [Détails](docs/BLUETOOTH.md#à-travers-un-proxy-bluetooth-esphome)
 
 ### Bluetooth local : le radiateur n'apparaît pas ou l'appairage échoue
 - **« Aucun adaptateur Bluetooth ne peut se connecter à un radiateur »** : l'intégration **Bluetooth** de Home Assistant n'a aucun adaptateur, ou seulement des proxys ESPHome en écoute passive. Ajoutez un adaptateur, ou activez les connexions du proxy (`active: true`), puis cliquez sur Valider
