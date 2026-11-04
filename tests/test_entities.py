@@ -1,7 +1,10 @@
 """Tests des entités : valeurs lues et identifiants conservés depuis la v1."""
 import pytest
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.helpers import entity_registry as er
+
+from custom_components.goodhome.climate import GoodHomeClimate
 
 from .conftest import DEVICE_ID, async_setup_entry_with, entity_id
 
@@ -48,6 +51,14 @@ async def test_climate_attributes(hass, setup_integration):
     assert state.attributes["target_mode_value"] == 60
     # Rien en attente de confirmation
     assert "pending_confirmation" not in state.attributes
+
+
+@pytest.mark.skipif(
+    not hasattr(ClimateEntity, "native_temperature_unit"), reason="Home Assistant antérieur à 2026.11"
+)
+def test_climate_avoids_deprecated_temperature_names():
+    deprecated = {"_attr_temperature_unit", "current_temperature", "target_temperature"}
+    assert not deprecated & set(vars(GoodHomeClimate))
 
 
 async def test_duplicate_temperature_sensors_disabled_by_default(hass, setup_integration):
