@@ -6,11 +6,21 @@ from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
+    RestoreSensor,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfPower, UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfTemperature,
+    UnitOfTime,
+)
+from homeassistant.core import callback
+from homeassistant.util import dt as dt_util
 
 from .entity import GoodHomeEntity, async_add_new_devices
 
@@ -160,9 +170,52 @@ async def async_setup_entry(hass, entry, async_add_entities):
             GoodHomeSensor(coordinator, device_id, description)
             for device_id in device_ids
             for description in SENSORS
-        ],
+        ]
+        + [GoodHomeEnergySensor(coordinator, device_id) for device_id in device_ids],
         async_add_entities,
     )
+
+
+class GoodHomeEnergySensor(GoodHomeEntity, RestoreSensor):
+    """Compteur d'énergie d'un radiateur : intègre la puissance consommée dans le temps."""
+
+    _attr_translation_key = "energy"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, coordinator, device_id):
+        """Initialiser le compteur."""
+        super().__init__(coordinator, device_id, f"goodhome_{device_id}_energy")
+        self._energy_kwh = 0.0
+        self._last_power = None  # Puissance (W) lors de la dernière mise à jour
+        self._last_time = None
+
+    async def async_added_to_hass(self):
+        """Reprendre le compteur là où il s'était arrêté avant le redémarrage."""
+        await super().async_added_to_hass()
+        last = await self.async_get_last_sensor_data()
+        if last is not None and last.native_value is not None:
+            try:
+                self._energy_kwh = float(last.native_value)
+            except (TypeError, ValueError):
+                pass
+
+    @callback
+    def _handle_coordinator_update(self):
+        now = dt_util.utcnow()
+        if self._last_power is not None and self._last_time is not None:
+            hours = (now - self._last_time).total_seconds() / 3600
+            self._energy_kwh += self._last_power * hours / 1000
+        self._last_time = now
+        self._last_power = power_consumption(self.state_data) if self.available else None
+        super()._handle_coordinator_update()
+
+    @property
+    def native_value(self):
+        """Énergie cumulée (kWh)."""
+        return round(self._energy_kwh, 4)
 
 
 class GoodHomeSensor(GoodHomeEntity, SensorEntity):

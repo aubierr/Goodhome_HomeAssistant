@@ -21,6 +21,7 @@ D = DEVICE_ID
         ("sensor", f"goodhome_{D}_duty_cycle", "40"),
         # 40 % de 1000 W (DLRIRDH1000)
         ("sensor", f"goodhome_{D}_power_consumption", "400.0"),
+        ("sensor", f"goodhome_{D}_energy", "0.0"),
         ("sensor", f"goodhome_{D}_self_learning_days", "0"),
         ("sensor", f"goodhome_{D}_device_info", "FW: 01206.3 TO100 | HW: 0001"),
         ("binary_sensor", f"goodhome_{D}_connectivity", STATE_ON),

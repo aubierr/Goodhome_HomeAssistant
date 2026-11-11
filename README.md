@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.4-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.5-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -124,6 +124,7 @@ En local, un mode manuel permanent (Manuel Confort, Éco, Hors-gel, consigne lib
 - `sensor.xxx_humidity` - Humidité
 - `sensor.xxx_heating_power` - Cycle de chauffe (%)
 - `sensor.xxx_power_consumption` - Consommation électrique calculée (W)
+- `sensor.xxx_energy` - Compteur d'énergie cumulée (kWh), compatible tableau de bord énergie
 - `sensor.xxx_comfort_temperature` / `eco_temperature` / `frost_protection_temperature` - Températures confort, éco et hors-gel (doublons des entités Number, désactivés par défaut sur les nouvelles installations)
 - `sensor.xxx_self_learning_days` - Jours d'apprentissage (0-14)
 - `sensor.xxx_device_information` - Informations appareil (diagnostic). Son attribut `other_fields` liste les champs envoyés par l'API qu'aucune entité n'exploite encore (nouveau firmware, nouveau modèle...)
@@ -241,21 +242,13 @@ Le calcul utilise :
 
 Formule : `Consommation (W) = (duty_cycle / 100) × puissance_nominale`
 
-### Intégration dans le tableau de bord énergie
+### Compteur d'énergie
 
-Pour suivre l'énergie consommée, créez un sensor d'intégration dans `configuration.yaml` :
-
-```yaml
-sensor:
-  - platform: integration
-    source: sensor.xxx_power_consumption
-    name: "Chauffage XXX Energy"
-    unit_prefix: k
-    round: 2
-    method: left
-```
-
-Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Assistant.
+Chaque radiateur dispose aussi d'un **compteur d'énergie** `sensor.xxx_energy` (kWh), qui cumule la puissance calculée au fil du temps. Sa valeur est conservée après un redémarrage et il peut être ajouté directement au **tableau de bord énergie** de Home Assistant (plus besoin du sensor d'intégration manuel).
+
+- **Calcul** : à chaque mise à jour, `puissance (W) × temps écoulé` est ajouté au total. Rien n'est compté tant que le radiateur est indisponible ou hors ligne.
+- **Tableau de bord énergie** : **Paramètres** → **Tableaux de bord** → **Énergie** → **Ajouter un appareil**, puis choisissez le compteur de chaque radiateur.
+- **Compteur manuel existant** : si vous aviez créé un sensor `integration` à la main, vous pouvez le supprimer et le remplacer par `sensor.xxx_energy`. Le nouveau compteur démarre à 0 kWh : l'historique de l'ancien reste dans ses propres statistiques.
 
 ## 🐛 Dépannage
 
