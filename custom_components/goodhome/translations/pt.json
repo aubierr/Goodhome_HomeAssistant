@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} foi removido do Home Assistant. Lembre-se de dissociar também o telemóvel no radiador: Definições → Ligação → Definições avançadas → Dissociar um telemóvel → selecione o telemóvel → Dissociar. Caso contrário, o radiador pode recusar um novo emparelhamento."
+    },
     "read_only_mode": {
       "message": "O modo {option} é gerido pelo próprio radiador e não pode ser selecionado"
     },

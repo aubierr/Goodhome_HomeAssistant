@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} se ha eliminado de Home Assistant. Recuerde desvincular también el móvil en el radiador: Ajustes → Conexión → Ajustes avanzados → Desvincular un móvil → seleccione el móvil → Desvincular. De lo contrario, el radiador puede rechazar un nuevo emparejamiento."
+    },
     "read_only_mode": {
       "message": "El modo {option} lo gestiona el propio radiador y no se puede seleccionar"
     },

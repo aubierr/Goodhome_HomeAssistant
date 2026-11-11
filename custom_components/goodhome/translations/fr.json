@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} a été supprimé de Home Assistant. Pensez à dissocier aussi le mobile sur le radiateur : Réglage → Connexion → Paramètres avancés → Dissocier un mobile → sélectionnez le mobile → Dissocier. Sinon le radiateur peut refuser un nouvel appairage."
+    },
     "read_only_mode": {
       "message": "Le mode {option} est géré par le radiateur lui-même et ne peut pas être sélectionné"
     },

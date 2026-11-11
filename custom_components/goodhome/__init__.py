@@ -11,6 +11,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady,
 from homeassistant.helpers import config_validation as cv, device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.translation import async_get_translations
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_ADDRESS, CONF_BLE_NAME, CONF_CONNECTION, CONF_SERIAL, CONNECTION_LOCAL, DOMAIN
@@ -182,6 +183,25 @@ async def async_remove_entry(hass: HomeAssistant, entry: GoodHomeConfigEntry) ->
         _LOGGER.debug("Cannot list Bluetooth radiators: %s", err)
         current = []
     async_rediscover(hass, entry.data.get(CONF_ADDRESS), *current)
+
+    await _async_remind_forget_mobile(hass, entry)
+
+
+async def _async_remind_forget_mobile(hass: HomeAssistant, entry: GoodHomeConfigEntry) -> None:
+    """Rappeler de supprimer aussi le mobile sur le radiateur (sinon il peut refuser un nouvel appairage)."""
+    from homeassistant.components import persistent_notification
+
+    try:
+        translations = await async_get_translations(hass, hass.config.language, "exceptions", [DOMAIN])
+        message = translations[f"component.{DOMAIN}.exceptions.forget_mobile.message"]
+        persistent_notification.async_create(
+            hass,
+            message.format(name=entry.title),
+            title="GoodHome",
+            notification_id=f"{DOMAIN}_forget_mobile_{entry.entry_id}",
+        )
+    except Exception as err:  # noqa: BLE001 - la suppression ne doit jamais échouer
+        _LOGGER.debug("Cannot create the removal reminder: %s", err)
 
 
 async def async_remove_config_entry_device(

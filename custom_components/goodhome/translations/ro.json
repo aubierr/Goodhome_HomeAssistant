@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} a fost eliminat din Home Assistant. Nu uita să disociezi și mobilul de pe radiator: Setări → Conexiune → Setări avansate → Disociază un mobil → selectează mobilul → Disociază. Altfel, radiatorul poate refuza o nouă asociere."
+    },
     "read_only_mode": {
       "message": "Modul {option} este gestionat de radiatorul însuși și nu poate fi selectat"
     },

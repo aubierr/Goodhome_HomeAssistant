@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} został usunięty z Home Assistant. Pamiętaj, aby odłączyć też telefon na grzejniku: Ustawienia → Połączenie → Ustawienia zaawansowane → Odłącz telefon → wybierz telefon → Odłącz. W przeciwnym razie grzejnik może odrzucić ponowne parowanie."
+    },
     "read_only_mode": {
       "message": "Tryb {option} jest zarządzany przez sam grzejnik i nie można go wybrać"
     },

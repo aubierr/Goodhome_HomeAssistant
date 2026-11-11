@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} was removed from Home Assistant. Remember to also remove the mobile on the radiator: Settings → Connection → Advanced settings → Dissociate a mobile → select the mobile → Dissociate. Otherwise the radiator may refuse a new pairing."
+    },
     "read_only_mode": {
       "message": "The {option} mode is managed by the radiator itself and cannot be selected"
     },
