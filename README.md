@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.4-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -78,11 +78,13 @@ Les deux modes peuvent cohabiter. Un même radiateur ajouté dans les deux modes
 
 ### Ajouter un radiateur en Bluetooth local
 
-1. **Mettez d'abord le radiateur en mode appairage**, comme dans l'application GoodHome : sur le radiateur, appuyez sur **Réglages** (engrenage), puis **Connexion**, puis **Ajouter**. Un radiateur n'annonce son nom Bluetooth (`GOODHOME-XXXX`) qu'en mode appairage.
+1. **Mettez d'abord le radiateur en mode appairage**, comme dans l'application GoodHome : sur le radiateur, appuyez sur **Réglage**, puis **Connexion**, **Ajouter un mobile**, **Nouveau mobile** et enfin **Suivant**. Un radiateur n'annonce son nom Bluetooth (`GOODHOME-XXXX`) qu'en mode appairage.
 2. Choisissez le radiateur dans la liste, sous son nom. Tant qu'aucun radiateur n'y apparaît, attendez quelques secondes et cliquez sur **Valider** pour relancer la recherche. Un radiateur déjà appairé à Home Assistant apparaît sous son nom suivi de son adresse.
    Un radiateur en mode appairage peut aussi être **détecté automatiquement** : une carte « GOODHOME-XXXX » apparaît dans **Découvertes**, et il suffit de cliquer sur **Ajouter**. Si vous ignorez la carte, elle ne revient pas : passez alors par **Ajouter une intégration**. Après la suppression d'un radiateur, elle revient dès qu'il est remis en mode appairage.
-3. Sur l'écran **Appairer GOODHOME-XXXX**, cliquez tout de suite sur **Valider**. L'appairage prend jusqu'à une minute. Si le mode appairage s'est arrêté entre-temps, refaites les 3 étapes sur le radiateur juste avant.
+3. Sur l'écran **Appairer GOODHOME-XXXX**, cliquez tout de suite sur **Valider**. L'appairage prend jusqu'à une minute. Si le mode appairage s'est arrêté entre-temps, refaites les étapes sur le radiateur juste avant.
 4. Le radiateur est ajouté sous le nom de sa pièce (ex. « GoodHome CUISINE »), avec les mêmes entités qu'en mode cloud.
+
+**Supprimer un radiateur** : Home Assistant affiche alors un rappel. Pensez à dissocier aussi le mobile sur le radiateur (**Réglage** → **Connexion** → **Paramètres avancés** → **Dissocier un mobile** → sélectionnez le mobile → **Dissocier**), sinon le radiateur peut refuser un nouvel appairage.
 
 Chaque radiateur est une entrée séparée : répétez l'opération pour chacun. Le détail du protocole est dans [docs/BLUETOOTH.md](docs/BLUETOOTH.md).
 
@@ -273,12 +275,12 @@ Ce sensor peut ensuite être ajouté au **tableau de bord énergie** de Home Ass
 
 ### Bluetooth local : le radiateur n'apparaît pas ou l'appairage échoue
 - **« Aucun adaptateur Bluetooth ne peut se connecter à un radiateur »** : l'intégration **Bluetooth** de Home Assistant n'a aucun adaptateur, ou seulement des proxys ESPHome en écoute passive. Ajoutez un adaptateur, ou activez les connexions du proxy (`active: true`), puis cliquez sur Valider
-- **« Aucun radiateur en mode appairage pour l'instant »** : mettez le radiateur en mode appairage (Réglages → Connexion → Ajouter), attendez quelques secondes, puis cliquez sur Valider. Une recherche Bluetooth active est lancée pour aider un radiateur éloigné à apparaître. Un radiateur déjà ajouté n'est plus proposé
+- **« Aucun radiateur en mode appairage pour l'instant »** : mettez le radiateur en mode appairage (Réglage → Connexion → Ajouter un mobile → Nouveau mobile → Suivant), attendez quelques secondes, puis cliquez sur Valider. Une recherche Bluetooth active est lancée pour aider un radiateur éloigné à apparaître. Un radiateur déjà ajouté n'est plus proposé
 - **Un radiateur éloigné (vers −80 dBm) n'arrive pas à s'appairer** : ses annonces n'arrivent pas assez souvent. Rapprochez l'adaptateur Bluetooth (une rallonge USB suffit souvent) ou ajoutez un proxy Bluetooth ESPHome près du radiateur. Pendant l'appairage, débranchez les proxys qui l'entendent mal (vers −90 dBm) : Home Assistant peut passer par eux
 - **À travers un proxy ESPHome, « No answer from radiator » à chaque essai** : vérifiez `esp32_ble: io_capability` (`none`, pas `display_yes_no`) et reflashez l'ESP32. Si le radiateur liste un appareil appairé à son nom en chiffres et lettres (l'adresse de l'ESP32, ex. `C88541687342`), supprimez-le avant de réessayer. Si l'ESP32 n'arrive même plus à se connecter, coupez l'alimentation du radiateur 30 s. Détails : [docs/BLUETOOTH.md](docs/BLUETOOTH.md#à-travers-un-proxy-bluetooth-esphome)
-- **« Le radiateur a refusé l'appairage »** : il n'était pas en mode appairage. Refaites les 3 étapes sur le radiateur (Réglages → Connexion → Ajouter), puis cliquez tout de suite sur Valider
+- **« Le radiateur a refusé l'appairage »** : il n'était pas en mode appairage. Refaites les étapes sur le radiateur (Réglage → Connexion → Ajouter un mobile → Nouveau mobile → Suivant), puis cliquez tout de suite sur Valider
 - **« Le radiateur n'est plus visible en Bluetooth »** : il est éteint ou trop loin. Sur les versions récentes de Home Assistant, les journaux indiquent pourquoi (récepteurs qui l'ont entendu, signal, connexions occupées)
-- **« L'appairage a échoué (…) »** : le détail technique est entre parenthèses. Un ancien appairage raté est oublié automatiquement à chaque essai : refaites simplement les 3 étapes et réessayez
+- **« L'appairage a échoué (…) »** : le détail technique est entre parenthèses. Un ancien appairage raté est oublié automatiquement à chaque essai : refaites simplement les étapes et réessayez
 - Un radiateur appairé auparavant à un autre ordinateur (Windows, Linux) peut être retiré de cet ordinateur, pour éviter les conflits
 
 ### Les modifications ne sont pas prises en compte

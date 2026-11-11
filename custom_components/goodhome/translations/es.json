@@ -23,14 +23,14 @@
       },
       "local": {
         "title": "Elegir el radiador",
-        "description": "1. Ponga el radiador en modo emparejamiento, como en la aplicación GoodHome: en el radiador, pulse **Ajustes** (icono de engranaje), luego **Conexión** y luego **Añadir**.\n2. Aparecerá abajo con su nombre (**GOODHOME-XXXX**): elíjalo.\n\nUn radiador solo muestra su nombre en modo emparejamiento. Un radiador ya emparejado con Home Assistant aparece con su dirección. Cada radiador se añade por separado.",
+        "description": "1. Ponga el radiador en modo emparejamiento, como en la aplicación GoodHome: en el radiador, pulse **Ajustes**, luego **Conexión**, **Añadir un móvil**, **Nuevo móvil** y por último **Siguiente**.\n2. Aparecerá abajo con su nombre (**GOODHOME-XXXX**): elíjalo.\n\nUn radiador solo muestra su nombre en modo emparejamiento. Un radiador ya emparejado con Home Assistant aparece con su dirección. Cada radiador se añade por separado.",
         "data": {
           "address": "Radiador"
         }
       },
       "pair": {
         "title": "Emparejar {name}",
-        "description": "**{name}** está en modo emparejamiento. Haga clic enseguida en **Enviar**: el emparejamiento tarda hasta un minuto.\n\nSi el modo emparejamiento ha terminado entretanto, repita los 3 pasos en el radiador (**Ajustes** → **Conexión** → **Añadir**) justo antes de enviar. Mantenga el radiador al alcance del adaptador Bluetooth (misma habitación o la de al lado)."
+        "description": "**{name}** está en modo emparejamiento. Haga clic enseguida en **Enviar**: el emparejamiento tarda hasta un minuto.\n\nSi el modo emparejamiento ha terminado entretanto, repita los pasos en el radiador (**Ajustes** → **Conexión** → **Añadir un móvil** → **Nuevo móvil** → **Siguiente**) justo antes de enviar. Mantenga el radiador al alcance del adaptador Bluetooth (misma habitación o la de al lado)."
       },
       "reauth_confirm": {
         "title": "Volver a autenticar GoodHome",
@@ -47,10 +47,10 @@
       "cannot_connect": "No se puede conectar con GoodHome",
       "invalid_auth": "Credenciales no válidas",
       "unknown": "Error desconocido",
-      "pair_failed": "El emparejamiento ha fallado ({error}). Repita los 3 pasos en el radiador y vuelva a intentarlo; si sigue fallando, acerque el adaptador Bluetooth.",
+      "pair_failed": "El emparejamiento ha fallado ({error}). Repita los pasos en el radiador y vuelva a intentarlo; si sigue fallando, acerque el adaptador Bluetooth.",
       "not_found": "El radiador ya no se ve por Bluetooth. Compruebe que está encendido y acerque el adaptador Bluetooth; luego vuelva a intentarlo.",
-      "pair_rejected": "El radiador ha rechazado el emparejamiento: no estaba en modo emparejamiento. Repita los 3 pasos en el radiador y haga clic enseguida en Enviar.",
-      "no_radiator_in_pairing_mode": "Todavía no hay ningún radiador en modo emparejamiento. Ponga el radiador en modo emparejamiento (Ajustes → Conexión → Añadir), espere unos segundos y haga clic en Enviar para buscar de nuevo.",
+      "pair_rejected": "El radiador ha rechazado el emparejamiento: no estaba en modo emparejamiento. Repita los pasos en el radiador y haga clic enseguida en Enviar.",
+      "no_radiator_in_pairing_mode": "Todavía no hay ningún radiador en modo emparejamiento. Ponga el radiador en modo emparejamiento (Ajustes → Conexión → Añadir un móvil → Nuevo móvil → Siguiente), espere unos segundos y haga clic en Enviar para buscar de nuevo.",
       "no_connectable_adapter": "Ningún adaptador Bluetooth puede conectarse a un radiador. Añada un adaptador Bluetooth a Home Assistant (o un proxy Bluetooth ESPHome con conexiones activas) y haga clic en Enviar para volver a intentarlo."
     },
     "abort": {
@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} se ha eliminado de Home Assistant. Recuerde desvincular también el móvil en el radiador: Ajustes → Conexión → Ajustes avanzados → Desvincular un móvil → seleccione el móvil → Desvincular. De lo contrario, el radiador puede rechazar un nuevo emparejamiento."
+    },
     "read_only_mode": {
       "message": "El modo {option} lo gestiona el propio radiador y no se puede seleccionar"
     },

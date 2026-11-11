@@ -23,14 +23,14 @@
       },
       "local": {
         "title": "Wybierz grzejnik",
-        "description": "1. Przełącz grzejnik w tryb parowania, jak w aplikacji GoodHome: na grzejniku naciśnij **Ustawienia** (ikona koła zębatego), potem **Połączenie**, potem **Dodaj**.\n2. Pojawi się poniżej pod swoją nazwą (**GOODHOME-XXXX**): wybierz go.\n\nGrzejnik pokazuje swoją nazwę tylko w trybie parowania. Grzejnik już sparowany z Home Assistant jest widoczny ze swoim adresem. Każdy grzejnik dodaje się osobno.",
+        "description": "1. Przełącz grzejnik w tryb parowania, jak w aplikacji GoodHome: na grzejniku naciśnij **Ustawienia**, potem **Połączenie**, **Dodaj telefon**, **Nowy telefon** i na końcu **Dalej**.\n2. Pojawi się poniżej pod swoją nazwą (**GOODHOME-XXXX**): wybierz go.\n\nGrzejnik pokazuje swoją nazwę tylko w trybie parowania. Grzejnik już sparowany z Home Assistant jest widoczny ze swoim adresem. Każdy grzejnik dodaje się osobno.",
         "data": {
           "address": "Grzejnik"
         }
       },
       "pair": {
         "title": "Sparuj {name}",
-        "description": "**{name}** jest w trybie parowania. Od razu kliknij **Zatwierdź**: parowanie trwa do minuty.\n\nJeśli tryb parowania w międzyczasie się zakończył, powtórz 3 kroki na grzejniku (**Ustawienia** → **Połączenie** → **Dodaj**) tuż przed zatwierdzeniem. Grzejnik musi być w zasięgu adaptera Bluetooth (to samo lub sąsiednie pomieszczenie)."
+        "description": "**{name}** jest w trybie parowania. Od razu kliknij **Zatwierdź**: parowanie trwa do minuty.\n\nJeśli tryb parowania w międzyczasie się zakończył, powtórz kroki na grzejniku (**Ustawienia** → **Połączenie** → **Dodaj telefon** → **Nowy telefon** → **Dalej**) tuż przed zatwierdzeniem. Grzejnik musi być w zasięgu adaptera Bluetooth (to samo lub sąsiednie pomieszczenie)."
       },
       "reauth_confirm": {
         "title": "Ponowne uwierzytelnienie GoodHome",
@@ -47,10 +47,10 @@
       "cannot_connect": "Nie można połączyć się z GoodHome",
       "invalid_auth": "Nieprawidłowe dane logowania",
       "unknown": "Nieznany błąd",
-      "pair_failed": "Parowanie nie powiodło się ({error}). Powtórz 3 kroki na grzejniku i spróbuj ponownie; jeśli nadal się nie udaje, przybliż adapter Bluetooth.",
+      "pair_failed": "Parowanie nie powiodło się ({error}). Powtórz kroki na grzejniku i spróbuj ponownie; jeśli nadal się nie udaje, przybliż adapter Bluetooth.",
       "not_found": "Grzejnik nie jest już widoczny przez Bluetooth. Sprawdź, czy jest włączony, i przybliż adapter Bluetooth, a następnie spróbuj ponownie.",
-      "pair_rejected": "Grzejnik odrzucił parowanie: nie był w trybie parowania. Powtórz 3 kroki na grzejniku i od razu kliknij Zatwierdź.",
-      "no_radiator_in_pairing_mode": "Żaden grzejnik nie jest jeszcze w trybie parowania. Przełącz grzejnik w tryb parowania (Ustawienia → Połączenie → Dodaj), odczekaj kilka sekund i kliknij Zatwierdź, aby wyszukać ponownie.",
+      "pair_rejected": "Grzejnik odrzucił parowanie: nie był w trybie parowania. Powtórz kroki na grzejniku i od razu kliknij Zatwierdź.",
+      "no_radiator_in_pairing_mode": "Żaden grzejnik nie jest jeszcze w trybie parowania. Przełącz grzejnik w tryb parowania (Ustawienia → Połączenie → Dodaj telefon → Nowy telefon → Dalej), odczekaj kilka sekund i kliknij Zatwierdź, aby wyszukać ponownie.",
       "no_connectable_adapter": "Żaden adapter Bluetooth nie może połączyć się z grzejnikiem. Dodaj adapter Bluetooth do Home Assistant (lub proxy Bluetooth ESPHome z aktywnymi połączeniami), a następnie kliknij Zatwierdź, aby spróbować ponownie."
     },
     "abort": {
@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} został usunięty z Home Assistant. Pamiętaj, aby odłączyć też telefon na grzejniku: Ustawienia → Połączenie → Ustawienia zaawansowane → Odłącz telefon → wybierz telefon → Odłącz. W przeciwnym razie grzejnik może odrzucić ponowne parowanie."
+    },
     "read_only_mode": {
       "message": "Tryb {option} jest zarządzany przez sam grzejnik i nie można go wybrać"
     },

@@ -23,14 +23,14 @@
       },
       "local": {
         "title": "Choisir le radiateur",
-        "description": "1. Mettez le radiateur en mode appairage, comme dans l'application GoodHome : sur le radiateur, appuyez sur **Réglages** (icône engrenage), puis **Connexion**, puis **Ajouter**.\n2. Il apparaît alors ci-dessous sous son nom (**GOODHOME-XXXX**) : choisissez-le.\n\nUn radiateur n'affiche son nom qu'en mode appairage. Un radiateur déjà appairé à Home Assistant apparaît avec son adresse. Chaque radiateur s'ajoute séparément.",
+        "description": "1. Mettez le radiateur en mode appairage, comme dans l'application GoodHome : sur le radiateur, appuyez sur **Réglage**, puis **Connexion**, **Ajouter un mobile**, **Nouveau mobile** et enfin **Suivant**.\n2. Il apparaît alors ci-dessous sous son nom (**GOODHOME-XXXX**) : choisissez-le.\n\nUn radiateur n'affiche son nom qu'en mode appairage. Un radiateur déjà appairé à Home Assistant apparaît avec son adresse. Chaque radiateur s'ajoute séparément.",
         "data": {
           "address": "Radiateur"
         }
       },
       "pair": {
         "title": "Appairer {name}",
-        "description": "**{name}** est en mode appairage. Cliquez tout de suite sur **Valider** : l'appairage prend jusqu'à une minute.\n\nSi le mode appairage s'est arrêté entre-temps, refaites les 3 étapes sur le radiateur (**Réglages** → **Connexion** → **Ajouter**) juste avant de valider. Gardez le radiateur à portée de l'adaptateur Bluetooth (même pièce ou pièce voisine)."
+        "description": "**{name}** est en mode appairage. Cliquez tout de suite sur **Valider** : l'appairage prend jusqu'à une minute.\n\nSi le mode appairage s'est arrêté entre-temps, refaites les étapes sur le radiateur (**Réglage** → **Connexion** → **Ajouter un mobile** → **Nouveau mobile** → **Suivant**) juste avant de valider. Gardez le radiateur à portée de l'adaptateur Bluetooth (même pièce ou pièce voisine)."
       },
       "reauth_confirm": {
         "title": "Réauthentifier GoodHome",
@@ -47,10 +47,10 @@
       "cannot_connect": "Impossible de se connecter à GoodHome",
       "invalid_auth": "Identifiants invalides",
       "unknown": "Erreur inconnue",
-      "pair_failed": "L'appairage a échoué ({error}). Refaites les 3 étapes sur le radiateur et réessayez ; si l'échec persiste, rapprochez l'adaptateur Bluetooth.",
+      "pair_failed": "L'appairage a échoué ({error}). Refaites les étapes sur le radiateur et réessayez ; si l'échec persiste, rapprochez l'adaptateur Bluetooth.",
       "not_found": "Le radiateur n'est plus visible en Bluetooth. Vérifiez qu'il est allumé et rapprochez l'adaptateur Bluetooth, puis réessayez.",
-      "pair_rejected": "Le radiateur a refusé l'appairage : il n'était pas en mode appairage. Refaites les 3 étapes sur le radiateur, puis cliquez tout de suite sur Valider.",
-      "no_radiator_in_pairing_mode": "Aucun radiateur en mode appairage pour l'instant. Mettez le radiateur en mode appairage (Réglages → Connexion → Ajouter), attendez quelques secondes, puis cliquez sur Valider pour relancer la recherche.",
+      "pair_rejected": "Le radiateur a refusé l'appairage : il n'était pas en mode appairage. Refaites les étapes sur le radiateur, puis cliquez tout de suite sur Valider.",
+      "no_radiator_in_pairing_mode": "Aucun radiateur en mode appairage pour l'instant. Mettez le radiateur en mode appairage (Réglage → Connexion → Ajouter un mobile → Nouveau mobile → Suivant), attendez quelques secondes, puis cliquez sur Valider pour relancer la recherche.",
       "no_connectable_adapter": "Aucun adaptateur Bluetooth ne peut se connecter à un radiateur. Ajoutez un adaptateur Bluetooth à Home Assistant (ou un proxy Bluetooth ESPHome avec connexions actives), puis cliquez sur Valider pour réessayer."
     },
     "abort": {
@@ -203,6 +203,9 @@
     }
   },
   "exceptions": {
+    "forget_mobile": {
+      "message": "{name} a été supprimé de Home Assistant. Pensez à dissocier aussi le mobile sur le radiateur : Réglage → Connexion → Paramètres avancés → Dissocier un mobile → sélectionnez le mobile → Dissocier. Sinon le radiateur peut refuser un nouvel appairage."
+    },
     "read_only_mode": {
       "message": "Le mode {option} est géré par le radiateur lui-même et ne peut pas être sélectionné"
     },

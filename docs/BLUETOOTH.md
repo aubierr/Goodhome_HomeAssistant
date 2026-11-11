@@ -23,7 +23,7 @@ Le radiateur ne s'annonce sous son nom `GOODHOME-XXXX` qu'**en mode appairage**,
 
 Le radiateur coupe toute connexion qui ne s'appaire pas **pendant la découverte des services**. L'appairage doit donc être demandé dès la connexion (`pair=True` dans Bleak).
 
-1. Mettre le radiateur en mode appairage, comme dans l'application : sur le radiateur, **Réglages** (engrenage), puis **Connexion**, puis **Ajouter**. Dans le code de l'application, ces étapes correspondent aux icônes `settings`, `connection` et `add_heater`.
+1. Mettre le radiateur en mode appairage, comme dans l'application : sur le radiateur, **Réglage**, puis **Connexion**, **Ajouter un mobile**, **Nouveau mobile** et enfin **Suivant**.
 2. Se connecter en demandant l'appairage. Le radiateur demande une **confirmation** (BlueZ : « request type 2 », `RequestConfirmation`), sans code à saisir.
 3. Sous Linux, BlueZ annule l'appairage s'il n'y a pas d'agent pour répondre (`No agent available for request type 2`, puis `AuthenticationCanceled`). L'intégration enregistre un agent BlueZ le temps de l'appairage : il accepte la confirmation pour ce radiateur seulement et refuse tout autre appareil.
 4. Après l'appairage, le radiateur s'annonce sous son adresse fixe. Les connexions suivantes se font sans appairage, à cette adresse.

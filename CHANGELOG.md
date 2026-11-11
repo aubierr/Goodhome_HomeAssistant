@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.4] - 2026-11-11
+
+### Modifié
+- 📝 **Marche à suivre d'appairage** alignée sur l'application : Réglage → Connexion → Ajouter un mobile → Nouveau mobile → Suivant (écrans d'appairage, messages d'erreur, README et documentation, dans les 6 langues)
+
+### Ajouté
+- 🔔 **Rappel à la suppression d'un radiateur en Bluetooth local** : une notification demande de dissocier aussi le mobile sur le radiateur (Réglage → Connexion → Paramètres avancés → Dissocier un mobile → sélectionnez le mobile → Dissocier)
+
 ## [2.2.3] - 2026-11-04
 
 ### Corrigé
