@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.5] - 2026-11-11
+
+### Ajouté
+- ⚡ **Compteur d'énergie de chaque radiateur** (`sensor.xxx_energy`, en kWh) : il cumule la puissance calculée (cycle de chauffe × puissance nominale) au fil du temps, garde sa valeur après un redémarrage de Home Assistant et s'ajoute directement au **tableau de bord énergie**, sans capteur d'intégration manuel. Rien n'est compté tant que le radiateur est indisponible
+
 ## [2.2.4] - 2026-11-11
 
 ### Modifié

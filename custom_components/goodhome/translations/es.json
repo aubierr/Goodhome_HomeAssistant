@@ -131,6 +131,9 @@
       "power_consumption": {
         "name": "Consumo"
       },
+      "energy": {
+        "name": "Energía"
+      },
       "device_info": {
         "name": "Información del dispositivo"
       },
