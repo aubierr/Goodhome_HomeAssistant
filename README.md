@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.4-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -83,6 +83,8 @@ Les deux modes peuvent cohabiter. Un même radiateur ajouté dans les deux modes
    Un radiateur en mode appairage peut aussi être **détecté automatiquement** : une carte « GOODHOME-XXXX » apparaît dans **Découvertes**, et il suffit de cliquer sur **Ajouter**. Si vous ignorez la carte, elle ne revient pas : passez alors par **Ajouter une intégration**. Après la suppression d'un radiateur, elle revient dès qu'il est remis en mode appairage.
 3. Sur l'écran **Appairer GOODHOME-XXXX**, cliquez tout de suite sur **Valider**. L'appairage prend jusqu'à une minute. Si le mode appairage s'est arrêté entre-temps, refaites les étapes sur le radiateur juste avant.
 4. Le radiateur est ajouté sous le nom de sa pièce (ex. « GoodHome CUISINE »), avec les mêmes entités qu'en mode cloud.
+
+**Supprimer un radiateur** : Home Assistant affiche alors un rappel. Pensez à dissocier aussi le mobile sur le radiateur (**Réglage** → **Connexion** → **Paramètres avancés** → **Dissocier un mobile** → sélectionnez le mobile → **Dissocier**), sinon le radiateur peut refuser un nouvel appairage.
 
 Chaque radiateur est une entrée séparée : répétez l'opération pour chacun. Le détail du protocole est dans [docs/BLUETOOTH.md](docs/BLUETOOTH.md).
 
