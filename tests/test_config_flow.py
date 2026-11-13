@@ -184,7 +184,15 @@ async def test_local_flow_waits_for_a_radiator_in_pairing_mode(hass, bluetooth_s
     _count, active_scan = bluetooth_scanners
     # Seuls des radiateurs sans nom (pas en mode appairage) sont visibles : ils ne sont pas proposés
     announced = {"56:82:18:00:00:94": "56:82:18:00:00:94"}
-    with patch("custom_components.goodhome.ble_client.async_discovered_radiators", return_value=announced):
+    # Un radiateur sans nom fait lire les noms de BlueZ : agent simulé (sous Linux, le vrai ouvre le
+    # bus D-Bus système, ce que pytest-socket signale ; dbus-fast n'existe d'ailleurs que sous Linux)
+    from types import SimpleNamespace
+
+    agent = SimpleNamespace(async_known_names=AsyncMock(return_value={}))
+    with (
+        patch("custom_components.goodhome.ble_client.async_discovered_radiators", return_value=announced),
+        patch.dict("sys.modules", {"custom_components.goodhome.ble_agent": agent}),
+    ):
         result = await _local_form(hass)
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "local"
