@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.3.0] - 2026-11-13
+
+Version stable : le mode **Bluetooth local** est vérifié sur de vrais radiateurs, avec un adaptateur (BlueZ) et à travers des proxys ESPHome (M5Stack ATOM Lite, ESP32).
+
+### Récapitulatif depuis 2.2.0
+- 📶 Bluetooth local : appairage par adaptateur ou proxy ESPHome, reconnexion après un redémarrage, relecture avec nouvel essai, démarrage sans blocage, NACK sur checksum invalide, nom `homeassistant` sur le radiateur
+- ⚡ Compteur d'énergie de chaque radiateur (tableau de bord énergie)
+- 🔑 Cloud : renouvellement du token comme l'application officielle
+- 📚 Documentation du protocole, des modes et du réglage des proxys ESPHome
+
+Aucun changement de code par rapport à 2.2.14.
+
 ## [2.2.14] - 2026-11-13
 
 ### Documentation
