@@ -191,6 +191,13 @@ async def test_late_disconnect_of_previous_connection_is_ignored(hass, radiator)
     assert client._client is None
 
 
+async def _async_setup_local(hass, entry):
+    """Installer l'entrée puis attendre la première lecture, qui se fait en tâche de fond."""
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+
 async def test_local_entry_creates_entities(hass, radiator):
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -200,8 +207,7 @@ async def test_local_entry_creates_entities(hass, radiator):
               CONF_BLE_NAME: "GOODHOME-0001"},
     )
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await _async_setup_local(hass, entry)
     assert entry.state is ConfigEntryState.LOADED
     assert entry.runtime_data.push is None
 
@@ -218,15 +224,27 @@ async def test_local_entry_creates_entities(hass, radiator):
     assert radiator.is_connected is False
 
 
-async def test_local_entry_not_ready_when_out_of_range(hass, radiator):
+async def test_local_entry_does_not_wait_for_a_radiator_out_of_range(hass, radiator):
     radiator.answer = False
     entry = MockConfigEntry(
         domain=DOMAIN, unique_id=SERIAL,
         data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_SERIAL: SERIAL},
     )
     entry.add_to_hass(hass)
-    await hass.config_entries.async_setup(entry.entry_id)
-    assert entry.state is ConfigEntryState.SETUP_RETRY
+    # Le démarrage n'attend pas le radiateur : l'entrée se charge, sans entité pour l'instant
+    await _async_setup_local(hass, entry)
+    assert entry.state is ConfigEntryState.LOADED
+    assert not entry.runtime_data.coordinator.last_update_success
+    from homeassistant.helpers import entity_registry as er
+
+    assert er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"goodhome_climate_{SERIAL}") is None
+
+    # Le radiateur revient : la relecture suivante crée ses entités
+    radiator.answer = True
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    climate = hass.states.get(entity_id(hass, "climate", f"goodhome_climate_{SERIAL}"))
+    assert climate.attributes["current_temperature"] == 19.0
 
 
 def test_fake_radiator_is_json_serializable():
@@ -242,8 +260,7 @@ async def test_local_diagnostics_hide_identifiers(hass, radiator):
         data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_SERIAL: SERIAL},
     )
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await _async_setup_local(hass, entry)
 
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
     assert diagnostics["connection"] == "local"
@@ -404,8 +421,7 @@ async def test_deleting_local_device_removes_its_entry(hass, radiator):
         data={CONF_CONNECTION: CONNECTION_LOCAL, CONF_ADDRESS: ADDRESS, CONF_SERIAL: SERIAL},
     )
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await _async_setup_local(hass, entry)
     # async_get_device est déprécié dans les versions récentes de Home Assistant
     (device,) = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
 
