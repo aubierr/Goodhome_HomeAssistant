@@ -497,7 +497,7 @@ class GoodHomeBleClient:
             await self._async_log_paired_devices("before")
             try:
                 reply = await self._async_command(
-                    lambda cmd_id: build_set_mobile_name(self._src_id, name, cmd_id)
+                    lambda cmd_id: build_set_mobile_name(name, cmd_id)
                 )
             except GoodHomeBleError as err:
                 _LOGGER.info("Could not set the mobile name on %s: %s", self.address, err)

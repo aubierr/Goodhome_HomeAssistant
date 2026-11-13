@@ -156,13 +156,13 @@ def build_system_command(name: str, cmd_id: str) -> dict[str, Any]:
     return {"type": "command", "cmdName": name, "cmdID": cmd_id}
 
 
-def build_set_mobile_name(mobile_id: str, name: str, cmd_id: str) -> dict[str, Any]:
-    """Nommer l'appareil appairé dans la liste du radiateur (format supposé, non vérifié)."""
+def build_set_mobile_name(name: str, cmd_id: str) -> dict[str, Any]:
+    """Nommer l'appareil connecté dans la liste du radiateur : `params` est le nom lui-même (chaîne)."""
     return {
         "type": "command",
         "cmdName": "system.bluetooth_set_mobile_device_name",
         "cmdID": cmd_id,
-        "params": {"mobileID": mobile_id, "name": name},
+        "params": name,
     }
 
 
