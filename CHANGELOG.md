@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.6] - 2026-11-13
+
+### Corrigé
+- 🔁 **Bluetooth local : une relecture qui échoue est retentée une fois**, sur une connexion neuve après une courte pause. Un proxy ESP32 saturé (erreurs GATT 133/143) ne rend plus un radiateur indisponible après une seule absence de réponse
+
+### Modifié
+- ⚡ **Bluetooth local : le démarrage n'attend plus les radiateurs**. La première lecture se fait en arrière-plan : un radiateur lent ou injoignable ne bloque plus l'installation de l'intégration, ses entités apparaissent dès sa première réponse et la relecture périodique réessaie sinon
+
 ## [2.2.5] - 2026-11-11
 
 ### Ajouté
