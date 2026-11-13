@@ -204,6 +204,8 @@ Comparaison avec GoodHome Connect 2.1.4 (module natif et JavaScript décompilés
 - `roomID` est un nombre dans l'application, un texte dans l'intégration ;
 - l'application envoie le nom du téléphone au radiateur seulement s'il diffère de celui déjà enregistré ; l'intégration envoie « homeassistant » après l'appairage.
 
+Nom du mobile, vérifié sur un radiateur réel (proxy ESPHome) : la commande `system.bluetooth_set_mobile_device_name` avec le nom `homeassistant` (minuscules, sans espace) est acceptée. Juste après l'appairage, le radiateur affiche d'abord « connexion OK » puis l'adresse Bluetooth de l'appareil, et Home Assistant reste un moment en chargement avant de se terminer sans erreur. Le radiateur est ensuite invisible dans Home Assistant quelque temps (il change d'adresse après l'appairage), puis réapparaît et son écran liste l'appareil sous le nom `homeassistant`. Les valeurs remontent normalement. Avec « Home Assistant » (majuscules et espace), la commande n'avait pas donné ce résultat.
+
 ## Aides du Bluetooth de Home Assistant
 
 D'après le [guide Bluetooth de Home Assistant](https://contributors.home-assistant.io/core/integrations/bluetooth/), l'intégration s'appuie sur ces fonctions :

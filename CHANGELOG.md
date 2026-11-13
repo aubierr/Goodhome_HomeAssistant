@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Documentation
+- 📚 `docs/BLUETOOTH.md` : le nom de mobile `homeassistant` est vérifié sur un radiateur réel (proxy ESPHome), avec le déroulement observé après l'appairage (connexion OK, adresse affichée, puis nom, radiateur invisible un moment dans Home Assistant). Aucun changement de code
+
 ## [2.2.13] - 2026-11-13
 
 ### Modifié
