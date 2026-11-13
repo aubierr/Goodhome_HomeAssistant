@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.11] - 2026-11-13
+
+### Corrigé
+- 🔑 **Cloud : renouvellement du token comme l'application officielle.** L'intégration appelait `POST /v1/auth/refresh`, route absente de l'application ; elle utilise maintenant `GET /v1/auth/token` avec les en-têtes `access-token` et `refresh-token`. Le repli sur une nouvelle connexion reste en place. Non encore vérifié sur l'API réelle
+- 📶 **Bluetooth local : un NACK est renvoyé quand le checksum d'une trame reçue est faux**, comme le fait l'application, et le message corrompu est ignoré au lieu d'être pris en compte
+
+### Documentation
+- 📚 `docs/MODES.md` aligné sur l'énumération `TARGET_MODE` de l'application (GoodHome Connect 2.1.4, décompilée) : noms officiels, corrections sur les modes 4, 8 et 70, valeurs de l'application sans entité (11, 31 à 35, 40 à 45, 50, 71, 99) et différence sur l'arrêt du radiateur
+- 📚 `docs/BLUETOOTH.md` : le NACK sur checksum invalide
+
 ## [2.2.10] - 2026-11-13
 
 ### Ajouté
