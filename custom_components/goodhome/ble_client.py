@@ -65,7 +65,7 @@ STALE_KEY_ERRORS = ("key-missing", "Unlikely Error", "UNLIKELY_ERROR")
 DEVICE_WAIT = 20  # Attente d'une annonce récente du radiateur (secondes)
 FRESH_ADVERTISEMENT = 10  # Âge maximal d'une annonce pour s'y connecter (secondes)
 CONNECT_WAIT = 30  # Attente d'une annonce avant chaque connexion (secondes)
-MOBILE_NAME = "Home Assistant"  # Nom affiché dans la liste des mobiles appairés du radiateur
+MOBILE_NAME = "homeassistant"  # Nom affiché dans la liste des mobiles appairés du radiateur
 PROXY_PAIRING_ATTEMPTS = 3  # Envois de la première demande après un appairage via un proxy (×10 s)
 
 

@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.13] - 2026-11-13
+
+### Modifié
+- 🏷️ **Bluetooth local : le nom envoyé au radiateur est `homeassistant`** (minuscules, sans espace) au lieu de « Home Assistant », au cas où le radiateur n'accepte pas les majuscules ni les espaces. Toujours non vérifié sur un radiateur réel ; une erreur reste sans effet sur l'appairage
+
 ## [2.2.12] - 2026-11-13
 
 ### Documentation

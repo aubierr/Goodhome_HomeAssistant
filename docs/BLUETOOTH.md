@@ -202,7 +202,7 @@ Comparaison avec GoodHome Connect 2.1.4 (module natif et JavaScript décompilés
 - avec des caractères accentués, l'application calcule le checksum sur des caractères UTF-16 tronqués à un octet, alors que l'intégration envoie du JSON en ASCII (accents échappés). L'intégration n'envoie aucun texte accentué ;
 - en mode 8, l'application recopie `targetTemp` dans `overrideTemp` à la lecture ; l'intégration lit `overrideTemp` tel que le radiateur l'envoie ;
 - `roomID` est un nombre dans l'application, un texte dans l'intégration ;
-- l'application envoie le nom du téléphone au radiateur seulement s'il diffère de celui déjà enregistré ; l'intégration envoie « Home Assistant » après l'appairage.
+- l'application envoie le nom du téléphone au radiateur seulement s'il diffère de celui déjà enregistré ; l'intégration envoie « homeassistant » après l'appairage.
 
 ## Aides du Bluetooth de Home Assistant
 
