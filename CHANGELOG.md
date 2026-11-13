@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.9] - 2026-11-13
+
+### Retiré
+- ⏪ **Bluetooth local : l'envoi du nom « Home Assistant » au radiateur est retiré** (2.2.7 et 2.2.8). Le format de la commande `system.bluetooth_set_mobile_device_name` est inconnu et le radiateur ne l'a pas prise en compte ; le journal des appareils appairés ajouté en 2.2.8 disparaît avec lui
+
 ## [2.2.8] - 2026-11-13
 
 ### Modifié
