@@ -62,7 +62,7 @@ async def test_devices_are_cached_with_etag(hass, aioclient_mock):
 
 async def test_expired_token_is_renewed_once(hass, aioclient_mock):
     client = await _logged_in_client(hass, aioclient_mock)
-    aioclient_mock.post(REFRESH_URL, json={"token": "token-2"})
+    aioclient_mock.get(REFRESH_URL, json={"token": "token-2"})
     aioclient_mock.get(DEVICES_URL, side_effect=_sequence((401, None, {}), (200, DEVICES_RESPONSE, {})))
 
     devices = await client.async_get_devices()
@@ -74,7 +74,7 @@ async def test_expired_token_is_renewed_once(hass, aioclient_mock):
 
 async def test_token_still_refused_raises(hass, aioclient_mock):
     client = await _logged_in_client(hass, aioclient_mock)
-    aioclient_mock.post(REFRESH_URL, json={"token": "token-2"})
+    aioclient_mock.get(REFRESH_URL, json={"token": "token-2"})
     aioclient_mock.get(DEVICES_URL, status=401)
     with pytest.raises(GoodHomeAuthError):
         await client.async_get_devices()

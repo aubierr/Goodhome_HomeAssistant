@@ -19,7 +19,7 @@ USER_ID = "user-1"
 DEVICE_ID = "device-1"
 
 LOGIN_URL = f"{BASE_URL}/v1/auth/login"
-REFRESH_URL = f"{BASE_URL}/v1/auth/refresh"
+REFRESH_URL = f"{BASE_URL}/v1/auth/token"
 DEVICES_URL = f"{BASE_URL}/v1/users/{USER_ID}/devices"
 STATE_URL = f"{BASE_URL}/v1/devices/{DEVICE_ID}/state"
 SOCKETIO_URL = f"{BASE_URL}/socket.io-v2/"

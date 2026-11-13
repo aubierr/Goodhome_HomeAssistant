@@ -4,6 +4,7 @@ Ce document liste tous les modes de fonctionnement connus d'un radiateur GoodHom
 
 Sources :
 - le code de l'intégration ([select.py](../custom_components/goodhome/select.py), [climate.py](../custom_components/goodhome/climate.py), [goodhome_api.py](../custom_components/goodhome/goodhome_api.py)) ;
+- l'application Android GoodHome Connect 2.1.4, décompilée : son énumération `TARGET_MODE` (`RUNMODE_*`) donne le nom officiel de chaque valeur, cité ci-dessous ;
 - le projet de référence [ESPHome_GoodHome](https://github.com/Benichou34/ESPHome_GoodHome), qui documente les modes dans `GoodHome.yaml` et les associe aux modes/presets climate dans `components/GoodHome/climate/climate.cpp`.
 
 ## Températures de consigne
@@ -21,22 +22,34 @@ Chaque mode fait chauffer le radiateur vers l'une de ces températures (champ `t
 
 | Valeur | Option du select | Famille | Consigne | Fin du mode |
 |:------:|------------------|---------|----------|-------------|
-| 0 | `default` — Par défaut | Provisoire | défaut | Retour au mode par défaut à la remise sous tension |
-| 1 | `manual_comfort` — Manuel Confort | Manuel | `comfTemp` (ou réglage depuis l'écran) | Aucune |
-| 2 | `manual_eco` — Manuel Éco | Manuel | `ecoTemp` | Aucune |
-| 3 | `manual_frost` — Manuel Hors-gel (= OFF) | Manuel | `antifTemp` | Aucune |
-| 4 | `temporary_override` — Override provisoire | Provisoire | `overrideTemp` | Retour au mode par défaut |
-| 5 | `long_absence` — Absence longue | Absence | `antifTemp` | `holidayTimeout` |
-| 8 | `override` — Manuel Override | Manuel | `overrideTemp` | Aucune |
+| 0 | `default` — Par défaut (app : `RUNMODE_AUTO`) | Provisoire | défaut | Retour au mode par défaut à la remise sous tension |
+| 1 | `manual_comfort` — Manuel Confort (app : `COMFORT`) | Manuel | `comfTemp` (ou réglage depuis l'écran) | Aucune |
+| 2 | `manual_eco` — Manuel Éco (app : `ECO`) | Manuel | `ecoTemp` | Aucune |
+| 3 | `manual_frost` — Manuel Hors-gel (= OFF) (app : `ANTIFROST`) | Manuel | `antifTemp` | Aucune |
+| 4 | `temporary_override` — nommé ainsi par l'intégration (app : `RUNMODE_STANDBY`, veille) | Provisoire | `overrideTemp` (observé : 7 °C) | Retour au mode par défaut |
+| 5 | `long_absence` — Absence longue (app : `HOLIDAY`) | Absence | `antifTemp` | `holidayTimeout` |
+| 8 | `override` — Manuel Override (app : `DEROGATION_SETPOINT_NEXTPROG`) | Manuel / dérogation | `overrideTemp` | Aucune en manuel ; prochaine période du planning si le planning est actif (d'après le nom dans l'app) |
 | 9 | `forced_comfort` — Forcé Confort | Auto, forçage | `comfTemp` | Prochaine période du planning |
 | 10 | `forced_eco` — Forcé Éco | Auto, forçage | `ecoTemp` | Prochaine période du planning |
 | 12 | `short_absence` — Absence courte | Absence | `ecoTemp` | `overrideTime` |
 | 30 | `eco_auto_absence` — Éco auto (absence), lecture seule | Auto, présence | `ecoTemp` | Retour de présence |
 | 60 | `auto_comfort` — Auto Confort | Auto, planning | `comfTemp` | Période suivante |
 | 61 | `auto_eco` — Auto Éco | Auto, planning | `ecoTemp` | Période suivante |
-| 70 | `manual` — Manuel | Manuel | ? | ? |
+| 70 | `manual` — Manuel (app : `AUTO_OVERRIDE_PIR_COMFORT`) | Auto, forçage | confort (d'après le nom dans l'app) | ? |
 
-Les valeurs 6, 7, 11 et 13 à 29 n'apparaissent dans aucune source. Une valeur inconnue met le select à l'état « inconnu » ; la valeur brute reste lisible dans son attribut `target_mode_value`.
+Valeurs de l'application sans option dans le select ni lecture dédiée du `climate` (nom `RUNMODE_*`, cité sans valeur observée) :
+
+| Valeur | Nom dans l'app |
+|:------:|----------------|
+| 11 | `DEROGATION_SETPOINT_UNTIL` (consigne libre jusqu'à une échéance) |
+| 31, 32 | `OCCUPANCYMODE_ON` / `COMFORT` (31), `OCCUPANCYMODE_OFF` / `ECO` (32) |
+| 33, 34, 35 | `OCCUPANCYMODE_ANTIFROST`, `ECO1K`, `ECO2K` |
+| 40 à 45 | `PILOTEWIRE_` : `COMFORT`, `ECO`, `ECO1K`, `ECO2K`, `ANTIFROST`, `STANDBY` (fil pilote) |
+| 50 | `WINDOW_AUTO` |
+| 71 | `AUTO_OVERRIDE_OPTI_COMFORT` |
+| 99 | `PREVIOUS` (valeur envoyée par l'app pour revenir au mode précédent) |
+
+Les valeurs 6, 7 et 13 à 29 n'apparaissent dans aucune source. Une valeur inconnue met le select à l'état « inconnu » ; la valeur brute reste lisible dans son attribut `target_mode_value`.
 
 ### Détail par famille
 
@@ -124,5 +137,6 @@ En lecture, ESPHome classe 2 (et 10, 61) en `eco`, et 12 en `sleep`. Il affiche 
 
 ## Points restant à confirmer
 
-- **Mode 70** : absent de la référence ESPHome ; sa consigne et sa fin restent à vérifier sur un radiateur réel.
+- **Mode 70** : absent de la référence ESPHome ; l'app le nomme `AUTO_OVERRIDE_PIR_COMFORT`, mais sa consigne et sa fin restent à vérifier sur un radiateur réel.
+- **Arrêt** : l'app envoie 3 quand le radiateur est en manuel (`noprog`), et 8 avec `antifTemp` quand le planning est actif ; l'intégration envoie toujours 3.
 - **Mode 30** : la référence ne le décrit pas. Le comportement documenté vient de l'observation, et on ignore si l'API l'accepte en écriture (d'où le refus côté select).

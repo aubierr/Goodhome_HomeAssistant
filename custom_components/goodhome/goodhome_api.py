@@ -84,9 +84,14 @@ class GoodHomeClient:
                 return
             if self._refresh_token:
                 try:
-                    result = await self._request_json(
-                        "POST", "/v1/auth/refresh", json={"refresh_token": self._refresh_token}, auth=False
+                    # Même requête que l'app officielle : GET /v1/auth/token avec les deux jetons en en-têtes
+                    _, result, _ = await self._request(
+                        "GET",
+                        "/v1/auth/token",
+                        auth=False,
+                        extra_headers={"access-token": self.token or "", "refresh-token": self._refresh_token},
                     )
+                    result = result or {}
                     if "token" in result:
                         self.token = result["token"]
                         self._refresh_token = result.get("refresh_token", self._refresh_token)
