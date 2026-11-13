@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.10] - 2026-11-13
+
+### Ajouté
+- 🏷️ **Bluetooth local : le radiateur nomme l'appareil « Home Assistant »**, avec le vrai format de la commande `system.bluetooth_set_mobile_device_name`, relevé dans l'application GoodHome Connect (`params` est le nom, une chaîne). Envoyé juste après l'appairage ; les appareils appairés avant et après sont écrits dans le journal (niveau info). Non encore vérifié sur un radiateur réel : une erreur est ignorée sans gêner l'appairage
+
 ## [2.2.9] - 2026-11-13
 
 ### Retiré
