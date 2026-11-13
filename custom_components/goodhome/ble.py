@@ -156,6 +156,16 @@ def build_system_command(name: str, cmd_id: str) -> dict[str, Any]:
     return {"type": "command", "cmdName": name, "cmdID": cmd_id}
 
 
+def build_set_mobile_name(mobile_id: str, name: str, cmd_id: str) -> dict[str, Any]:
+    """Nommer l'appareil appairé dans la liste du radiateur (format supposé, non vérifié)."""
+    return {
+        "type": "command",
+        "cmdName": "system.bluetooth_set_mobile_device_name",
+        "cmdID": cmd_id,
+        "params": {"mobileID": mobile_id, "name": name},
+    }
+
+
 def _host_command(serial: str, src_id: str, cmd_id: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
     # hostID = « host. » + numéro de série ; srcID = identifiant que le radiateur nous a donné (dstID)
     return {
