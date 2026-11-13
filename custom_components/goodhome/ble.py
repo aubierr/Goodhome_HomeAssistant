@@ -146,6 +146,11 @@ def build_ack(counter: bytes) -> bytes:
     return MARKER + bytes((TYPE_ACK,)) + counter
 
 
+def build_nack(counter: bytes) -> bytes:
+    """Refuser une trame de données au checksum faux (compteur recopié), comme l'appli."""
+    return MARKER + bytes((TYPE_NACK,)) + counter
+
+
 def split_chunks(frame: bytes, size: int = CHUNK_SIZE) -> list[bytes]:
     """Découper une trame en morceaux écrits un par un."""
     return [frame[i : i + size] for i in range(0, len(frame), size)]

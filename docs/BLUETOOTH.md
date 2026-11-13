@@ -73,7 +73,7 @@ Toutes les trames commencent par `___` (`5F 5F 5F`).
 5F 5F 5F | 02 | compteur (2 o)     NACK
 ```
 
-Chaque trame de données reçue est acquittée par un ACK qui recopie son compteur. Le radiateur acquitte de même chaque commande.
+Chaque trame de données reçue est acquittée par un ACK qui recopie son compteur. Le radiateur acquitte de même chaque commande. Si le checksum d'une trame reçue est faux, l'application répond par un NACK (relevé dans `verifyChecksum` et `onReceiveChunckJSON`) ; l'intégration fait de même et ignore le message.
 
 ### Découpage
 

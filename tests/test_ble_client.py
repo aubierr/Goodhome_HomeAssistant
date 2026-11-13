@@ -35,6 +35,7 @@ class FakeRadiator:
         self.answer = answer
         self.is_connected = True
         self.received = []
+        self.acks = []  # (type, compteur) des ACK/NACK reçus
         self._notify = None
         self._decoder = FrameDecoder()
 
@@ -48,6 +49,8 @@ class FakeRadiator:
         assert response is False
         assert len(data) <= 20
         for frame in self._decoder.feed(bytes(data)):
+            if frame.kind in (1, 2):
+                self.acks.append((frame.kind, frame.counter))
             if frame.kind == 0:
                 self.received.append(frame.message)
                 if self.answer:
@@ -149,6 +152,35 @@ async def test_unsolicited_change_is_pushed(hass, radiator):
 
     radiator.push({"currentTemp": "205"})
     assert updates[-1][SERIAL]["state"]["currentTemp"] == 20.5
+
+
+async def test_valid_message_is_acknowledged(hass, radiator):
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    await client.async_get_devices()
+
+    radiator.acks.clear()
+    radiator.push({"currentTemp": "205"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert radiator.acks == [(1, b"\x00\x01")]
+
+
+async def test_bad_checksum_gets_a_nack_and_is_dropped(hass, radiator):
+    client = GoodHomeBleClient(hass, ADDRESS, SERIAL)
+    updates = []
+    client.on_update = updates.append
+    await client.async_get_devices()
+
+    message = {"cmdName": "ble_set_attr", "srcID": f"host.{SERIAL}",
+               "request": {"method": "setAttr", "value": {"currentTemp": "999"}}}
+    frame = bytearray(build_frame(message))
+    frame[-1] ^= 0xFF  # checksum faux
+    radiator.acks.clear()
+    for chunk in split_chunks(bytes(frame)):
+        radiator._notify(None, bytearray(chunk))
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert radiator.acks == [(2, b"\x00\x01")]
+    assert not updates or updates[-1][SERIAL]["state"]["currentTemp"] != 99.9
 
 
 async def test_no_answer_raises(hass, radiator):

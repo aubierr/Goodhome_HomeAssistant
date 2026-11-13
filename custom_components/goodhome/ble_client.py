@@ -25,6 +25,7 @@ from .ble import (
     FrameDecoder,
     attributes_in,
     build_ack,
+    build_nack,
     build_frame,
     build_get_attr,
     build_set_attr,
@@ -644,9 +645,9 @@ class GoodHomeBleClient:
                 await self._client.write_gatt_char(WRITE_UUID, chunk, response=False)
                 await asyncio.sleep(CHUNK_DELAY)
 
-    async def _async_ack(self, counter: bytes) -> None:
+    async def _async_ack(self, counter: bytes, *, valid: bool = True) -> None:
         try:
-            await self._async_write(build_ack(counter))
+            await self._async_write((build_ack if valid else build_nack)(counter))
         except Exception as err:  # noqa: BLE001 - un ACK perdu n'empêche rien
             _LOGGER.debug("ACK to %s failed: %s", self.address, err)
 
@@ -657,7 +658,13 @@ class GoodHomeBleClient:
                 _LOGGER.debug("NACK from radiator %s", self.address)
             if frame.kind != TYPE_DATA:
                 continue
-            self.hass.async_create_task(self._async_ack(frame.counter), eager_start=False)
+            self.hass.async_create_task(
+                self._async_ack(frame.counter, valid=frame.checksum_ok), eager_start=False
+            )
+            if not frame.checksum_ok:
+                # Comme l'appli : NACK, et le message corrompu n'est pas pris en compte
+                _LOGGER.debug("Bad checksum from radiator %s, NACK sent", self.address)
+                continue
             self.handle_message(frame.message)
 
     @callback
