@@ -28,7 +28,6 @@ from .ble import (
     build_frame,
     build_get_attr,
     build_set_attr,
-    build_set_mobile_name,
     build_system_command,
     from_radiator,
     split_chunks,
@@ -64,7 +63,6 @@ STALE_KEY_ERRORS = ("key-missing", "Unlikely Error", "UNLIKELY_ERROR")
 DEVICE_WAIT = 20  # Attente d'une annonce récente du radiateur (secondes)
 FRESH_ADVERTISEMENT = 10  # Âge maximal d'une annonce pour s'y connecter (secondes)
 CONNECT_WAIT = 30  # Attente d'une annonce avant chaque connexion (secondes)
-MOBILE_NAME = "Home Assistant"  # Nom affiché dans la liste des mobiles appairés du radiateur
 PROXY_PAIRING_ATTEMPTS = 3  # Envois de la première demande après un appairage via un proxy (×10 s)
 
 
@@ -374,7 +372,6 @@ async def _async_pair_once(hass: HomeAssistant, device, name: str | None) -> tup
             await client.async_close()
             await _async_wait_device(hass, client.address, None, active_scan=True)
         devices = await client.async_get_devices()
-        await client.async_set_mobile_name(MOBILE_NAME)
     finally:
         await client.async_close()
     return client.address, client.serial, devices[client.serial]["state"]
@@ -486,18 +483,6 @@ class GoodHomeBleClient:
         """Utiliser une connexion déjà ouverte (celle de l'appairage)."""
         async with self._lock:
             await self._async_start(bleak_client, attempts)
-
-    async def async_set_mobile_name(self, name: str) -> None:
-        """Nommer Home Assistant dans la liste des mobiles du radiateur (au mieux, sans erreur)."""
-        async with self._lock:
-            try:
-                reply = await self._async_command(
-                    lambda cmd_id: build_set_mobile_name(self._src_id, name, cmd_id)
-                )
-            except GoodHomeBleError as err:
-                _LOGGER.debug("Could not set the mobile name on %s: %s", self.address, err)
-            else:
-                _LOGGER.debug("Mobile name set to %r on %s, reply: %s", name, self.address, reply)
 
     async def async_close(self) -> None:
         """Se déconnecter."""
