@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.13-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.14-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -46,7 +46,7 @@ Deux modes de connexion, au choix à l'ajout de l'intégration :
 
 - Home Assistant **2025.1** ou plus récent (testé de la 2025.1 à la dernière version)
 - **Mode cloud** : vos radiateurs doivent être connectés au cloud GoodHome, depuis l'application mobile officielle **GoodHome** (Android et iOS).
-- **Mode Bluetooth local** : l'intégration **Bluetooth** de Home Assistant doit avoir un adaptateur capable de se connecter, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) avec les connexions actives (`active: true`), à portée des radiateurs (même pièce ou pièce voisine). Il faut aussi pouvoir mettre le radiateur en mode appairage depuis ses boutons. Ce mode a été testé avec Home Assistant OS, avec un adaptateur (appairage par BlueZ, Linux) et avec des proxys ESPHome 2026.10. Pour un proxy, laissez `esp32_ble: io_capability` à sa valeur par défaut (`none`) : avec `display_yes_no`, l'appairage ne se termine jamais.
+- **Mode Bluetooth local** : l'intégration **Bluetooth** de Home Assistant doit avoir un adaptateur capable de se connecter, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) avec les connexions actives (`active: true`), à portée des radiateurs (même pièce ou pièce voisine). Il faut aussi pouvoir mettre le radiateur en mode appairage depuis ses boutons. Ce mode a été testé avec Home Assistant OS, avec un adaptateur (appairage par BlueZ, Linux) et avec des proxys ESPHome 2026.10. Pour un proxy, laissez `esp32_ble: io_capability` à sa valeur par défaut (`none`) : avec `display_yes_no`, l'appairage ne se termine jamais. Conseillé : `wifi: power_save_mode: NONE`, une IP fixe, et un seul proxy allumé près du radiateur pendant l'appairage. Les proxys testés sont des **M5Stack ATOM Lite (ESP32)** ; [exemple de configuration](docs/BLUETOOTH.md#à-travers-un-proxy-bluetooth-esphome).
 
 ### Via HACS (recommandé)
 

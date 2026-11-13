@@ -5,10 +5,12 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [2.2.14] - 2026-11-13
 
 ### Documentation
 - 📚 `docs/BLUETOOTH.md` : le nom de mobile `homeassistant` est vérifié sur un radiateur réel (proxy ESPHome), avec le déroulement observé après l'appairage (connexion OK, adresse affichée, puis nom, radiateur invisible un moment dans Home Assistant). Aucun changement de code
+- 📚 Proxy ESPHome : matériel testé (**M5Stack ATOM Lite, ESP32**), réglage conseillé (`power_save_mode: NONE`, IP fixe, un seul proxy près du radiateur à l'appairage) et exemple de configuration, dans `docs/BLUETOOTH.md` et le README
+- 📚 Nom du mobile : la cause probable de l'échec de « Home Assistant » est l'espace dans le nom (non confirmée)
 
 ## [2.2.13] - 2026-11-13
 

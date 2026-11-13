@@ -48,6 +48,27 @@ Pièges rencontrés pendant l'appairage, tous gérés par l'intégration :
 Vérifié sur un vrai radiateur avec ESPHome 2026.10.2 (firmware `esp32-generic` des proxys Bluetooth). L'appairage et la clé sont alors gardés par l'ESP32, pas par BlueZ : le radiateur liste l'ESP32 parmi ses appareils appairés, sous son adresse Bluetooth (ex. `C88541687342`).
 
 - **Réglage de l'ESP32** : `esp32_ble: io_capability: none` (valeur par défaut). Avec `display_yes_no`, le radiateur demande une confirmation que le firmware ESPHome n'envoie jamais : le chiffrement ne se termine pas et le radiateur ne répond à rien.
+- **Matériel testé** : tous les essais à travers un proxy ont été faits avec des **M5Stack ATOM Lite (ESP32)**, flashés avec le paquet `esp32-generic` des [proxys Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth). Un autre ESP32 devrait convenir, sans avoir été essayé.
+- **Réglage conseillé de l'ESP32** : IP fixe (réservation DHCP ou `manual_ip`), `wifi: power_save_mode: NONE` (l'économie d'énergie du Wi-Fi peut ralentir les réponses du proxy ; réglage de la configuration testée, effet non mesuré) et un seul proxy allumé près du radiateur pendant l'appairage. Exemple :
+
+  ```yaml
+  packages:
+    esphome.bluetooth-proxy: "github://esphome/bluetooth-proxies/esp32-generic/esp32-generic.yaml@main"
+
+  wifi:
+    ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    manual_ip:
+      static_ip: 192.168.1.50
+      gateway: 192.168.1.1
+      subnet: 255.255.255.0
+    power_save_mode: NONE
+
+  esp32_ble:
+    io_capability: none
+  ```
+
+  Ce paquet active déjà les connexions (`bluetooth_proxy: active: true`).
 - **Appairage après la connexion** : `pair=True` n'arrive pas jusqu'au proxy (la connexion reste non chiffrée). L'intégration se connecte sans appairer, puis demande l'appairage (`pair()`).
 - **Clé gardée par l'ESP32** : comme BlueZ, l'ESP32 garde la clé d'un essai précédent, que le radiateur n'a plus si l'appareil a été retiré de sa liste. L'intégration l'oublie (`unpair()`) avant d'appairer. L'ESP32 coupe alors la connexion sans que Bleak le voie tout de suite : appairer aussitôt échoue avec l'erreur 102, l'intégration se reconnecte donc d'abord.
 - **Chiffrement tardif** : à travers un proxy, le chiffrement se termine plusieurs secondes après la connexion, et le radiateur ignore les messages reçus avant. Après un appairage comme à chaque reconnexion, l'intégration renvoie donc sa première demande (`system.get_network_status`) pendant 30 s, en refaisant l'abonnement aux notifications entre deux envois.
@@ -204,7 +225,7 @@ Comparaison avec GoodHome Connect 2.1.4 (module natif et JavaScript décompilés
 - `roomID` est un nombre dans l'application, un texte dans l'intégration ;
 - l'application envoie le nom du téléphone au radiateur seulement s'il diffère de celui déjà enregistré ; l'intégration envoie « homeassistant » après l'appairage.
 
-Nom du mobile, vérifié sur un radiateur réel (proxy ESPHome) : la commande `system.bluetooth_set_mobile_device_name` avec le nom `homeassistant` (minuscules, sans espace) est acceptée. Juste après l'appairage, le radiateur affiche d'abord « connexion OK » puis l'adresse Bluetooth de l'appareil, et Home Assistant reste un moment en chargement avant de se terminer sans erreur. Le radiateur est ensuite invisible dans Home Assistant quelque temps (il change d'adresse après l'appairage), puis réapparaît et son écran liste l'appareil sous le nom `homeassistant`. Les valeurs remontent normalement. Avec « Home Assistant » (majuscules et espace), la commande n'avait pas donné ce résultat.
+Nom du mobile, vérifié sur un radiateur réel (proxy ESPHome) : la commande `system.bluetooth_set_mobile_device_name` avec le nom `homeassistant` (minuscules, sans espace) est acceptée. Juste après l'appairage, le radiateur affiche d'abord « connexion OK » puis l'adresse Bluetooth de l'appareil, et Home Assistant reste un moment en chargement avant de se terminer sans erreur. Le radiateur est ensuite invisible dans Home Assistant quelque temps (il change d'adresse après l'appairage), puis réapparaît et son écran liste l'appareil sous le nom `homeassistant`. Les valeurs remontent normalement. L'ancien nom « Home Assistant » (majuscules et espace) ne fonctionnait pas ; la cause probable est l'espace dans le nom, non confirmée (le nom `homeassistant` a changé deux choses à la fois : la casse et l'espace).
 
 ## Aides du Bluetooth de Home Assistant
 
