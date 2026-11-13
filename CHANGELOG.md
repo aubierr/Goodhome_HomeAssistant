@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.7] - 2026-11-13
+
+### Ajouté
+- 🏷️ **Bluetooth local : le radiateur nomme l'appareil « Home Assistant »** dans sa liste de mobiles appairés (Réglage → Connexion → Paramètres avancés → Dissocier un mobile), au lieu d'une adresse. Le nom est envoyé juste après l'appairage, avec la commande `system.bluetooth_set_mobile_device_name` de l'application ; son format n'est pas encore vérifié sur un radiateur réel, et une erreur est ignorée sans gêner l'appairage
+
 ## [2.2.6] - 2026-11-13
 
 ### Corrigé

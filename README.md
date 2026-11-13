@@ -1,7 +1,7 @@
 # GoodHome Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-2.2.6-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.7-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1+-brightgreen.svg)
 
 Intégration Home Assistant complète pour les radiateurs connectés **GoodHome** (marque Kingfisher - Castorama/Brico Dépôt).
@@ -244,8 +244,10 @@ Formule : `Consommation (W) = (duty_cycle / 100) × puissance_nominale`
 
 ### Compteur d'énergie
 
-Chaque radiateur dispose aussi d'un **compteur d'énergie** `sensor.xxx_energy` (kWh), qui cumule la puissance calculée au fil du temps. Sa valeur est conservée après un redémarrage et il peut être ajouté directement au **tableau de bord énergie** de Home Assistant (plus besoin du sensor d'intégration manuel).
-
+Chaque radiateur dispose aussi d'un **compteur d'énergie** `sensor.xxx_energy` (kWh), qui cumule la puissance calculée au fil du temps. Sa valeur est conservée après un redémarrage et il peut être ajouté directement au **tableau de bord énergie** de Home Assistant (plus besoin du sensor d'intégration manuel).
+
+
+
 - **Calcul** : à chaque mise à jour, `puissance (W) × temps écoulé` est ajouté au total. Rien n'est compté tant que le radiateur est indisponible ou hors ligne.
 - **Tableau de bord énergie** : **Paramètres** → **Tableaux de bord** → **Énergie** → **Ajouter un appareil**, puis choisissez le compteur de chaque radiateur.
 - **Compteur manuel existant** : si vous aviez créé un sensor `integration` à la main, vous pouvez le supprimer et le remplacer par `sensor.xxx_energy`. Le nouveau compteur démarre à 0 kWh : l'historique de l'ancien reste dans ses propres statistiques.
