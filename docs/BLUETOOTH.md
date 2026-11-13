@@ -3,11 +3,19 @@
 Ce document décrit le protocole Bluetooth Low Energy utilisé par l'application **GoodHome Connect** pour piloter un radiateur sans passer par le cloud, et la façon dont l'intégration Home Assistant l'utilise en mode local.
 
 Sources :
-- l'application Android GoodHome Connect (React Native, bytecode Hermes), décompilée : modules `com.imh.ble` (transport) et fonctions `buildCommand`, `buildACK`, `computeChecksum`, `formatCommand`, `sendSetAttributeCommand`, `sendGetAttributeCommand` ;
+- l'application Android GoodHome Connect 2.1.4 (React Native, bytecode Hermes), décompilée : module natif `com.imh.ble` (transport, en DEX) et fonctions `buildCommand`, `buildACK`, `computeChecksum`, `formatCommand`, `sendSetAttributeCommand`, `sendGetAttributeCommand` ;
 - le projet [ESPHome_GoodHome](https://github.com/Benichou34/ESPHome_GoodHome), qui documente le même format de trames sur la liaison série interne du radiateur (`SerialExchange.cpp`) ;
 - des essais sur deux vrais radiateurs (firmware `01206.3 TO100`, dont un modèle `DLRIRFH1000`).
 
 Le code de l'intégration : [ble.py](../custom_components/goodhome/ble.py) (trames et conversions), [ble_client.py](../custom_components/goodhome/ble_client.py) (connexion), [ble_agent.py](../custom_components/goodhome/ble_agent.py) (appairage BlueZ).
+
+## En bref
+
+- **Liaison** : service GATT `0xF0` ; l'application écrit sur `0xF1` et reçoit les notifications de `0xF2`, des messages JSON dans des trames `___` découpées en morceaux de 20 octets.
+- **Appairage** : le radiateur n'annonce son nom `GOODHOME-XXXX` qu'en mode appairage ; il demande une simple confirmation.
+- **Valeurs** : tout voyage en texte (températures en dixièmes) ; l'intégration les convertit au format de l'API cloud.
+- **Conforme à l'application 2.1.4** sur tous les points comparés : voir [Conformité avec l'application officielle](#conformité-avec-lapplication-officielle).
+- **Non pris en charge** : programmation horaire et mises à jour du firmware : voir [Fonctions non prises en charge](#fonctions-non-prises-en-charge-programmation-horaire-ota).
 
 ## Service GATT
 
@@ -136,7 +144,7 @@ Les attributs passent par `system.send_to_host`, adressé à `host.<numéro de s
 
 - **Modification** (`ble_set_attr` / `setAttr`) : `value` contient les attributs à changer, encodés comme ci-dessous. Le radiateur applique le changement en quelques secondes ; une relecture le confirme en une dizaine de secondes (45 s à 2 min par le cloud).
 - **Changements spontanés** : quand un réglage change sur le radiateur, il envoie de lui-même un message `ble_set_attr` à l'appareil connecté.
-- `ble_get_prog` / `ble_set_prog` (programmation horaire) et `ble_ota` (mise à jour du firmware) existent aussi ; l'intégration ne les utilise pas.
+- `ble_get_prog` / `ble_set_prog` (programmation horaire) et `ble_ota` (mise à jour du firmware) existent aussi ; l'intégration ne les utilise pas ([formats](#fonctions-non-prises-en-charge-programmation-horaire-ota)).
 
 ### Changer de mode
 
@@ -173,6 +181,29 @@ Particularités :
 - les modes (`targetMode`) ont les mêmes valeurs qu'en cloud (voir [MODES.md](MODES.md)) ;
 - la version matérielle (`HwVer`) et le code défaut (`faultSystem`) de l'API cloud ne font pas partie des attributs lus en Bluetooth.
 
+## Conformité avec l'application officielle
+
+Comparaison avec GoodHome Connect 2.1.4 (module natif et JavaScript décompilés) :
+
+| Point | Application | Intégration |
+|-------|-------------|-------------|
+| UUID du service et des caractéristiques | `F0` / `F1` / `F2` | identiques |
+| Connexion | GATT en Bluetooth Low Energy, sans reconnexion automatique | idem |
+| Taille des morceaux | MTU fixé à 20 (`updateMTU` n'est jamais appelé) | 20 octets |
+| Trame et checksum | 1er octet = somme pondérée, 2e = somme simple (à l'écriture comme à la vérification) | identique |
+| Accusés | ACK recopiant le compteur ; **NACK si le checksum est faux** | identique depuis la 2.2.11 (le message corrompu est ignoré) |
+| `cmdID` | compteur partagé, converti en texte | compteur en texte |
+| Appairage (Android) | connexion GATT, puis `createBond` si l'appareil n'est pas appairé ; sur échec, nouvel essai après 5 s | appairage dès la connexion ; nouvel essai après avoir oublié la clé périmée |
+| Attributs lus | 32 attributs | liste identique |
+| Conversion des valeurs | `formatAttr` (lecture), `formatCommand` (écriture) | `from_radiator`, `to_radiator` |
+
+Écarts sans conséquence connus :
+- l'application n'arrondit pas : `18.3 × 10` peut donner `"183.00000000000003"` ; l'intégration arrondit ;
+- avec des caractères accentués, l'application calcule le checksum sur des caractères UTF-16 tronqués à un octet, alors que l'intégration envoie du JSON en ASCII (accents échappés). L'intégration n'envoie aucun texte accentué ;
+- en mode 8, l'application recopie `targetTemp` dans `overrideTemp` à la lecture ; l'intégration lit `overrideTemp` tel que le radiateur l'envoie ;
+- `roomID` est un nombre dans l'application, un texte dans l'intégration ;
+- l'application envoie le nom du téléphone au radiateur seulement s'il diffère de celui déjà enregistré ; l'intégration envoie « Home Assistant » après l'appairage.
+
 ## Aides du Bluetooth de Home Assistant
 
 D'après le [guide Bluetooth de Home Assistant](https://contributors.home-assistant.io/core/integrations/bluetooth/), l'intégration s'appuie sur ces fonctions :
@@ -184,13 +215,31 @@ D'après le [guide Bluetooth de Home Assistant](https://contributors.home-assist
 
 Le Bluetooth de Home Assistant n'est importé qu'à l'intérieur des fonctions de `ble_client.py`, pour ne pas l'imposer au mode cloud. Ces quatre points sont couverts par des tests avec un Bluetooth simulé, pas encore vérifiés sur de vrais radiateurs.
 
+## Fonctions non prises en charge (programmation horaire, OTA)
+
+Formats relevés dans l'application 2.1.4 (décompilée), **pas encore vérifiés sur un radiateur**.
+
+**Programmation horaire.** Même enveloppe `system.send_to_host` que les attributs :
+
+| Action | `params.cmdName` | `params.request` |
+|--------|------------------|------------------|
+| Lire | `ble_get_prog` | `{"method": "getSch"}` |
+| Écrire | `ble_set_prog` | `{"method": "setSch", "value": {"program": {"data": {...}, "redundancy": "weekly"}}}` |
+
+- La réponse à une lecture arrive comme un message `ble_set_prog` du radiateur.
+- `data` regroupe les jours `monday` à `sunday`, chacun une liste de périodes (avec un `type`).
+- Unités : l'application garde `begin` et `end` en **secondes** ; le radiateur utilise `s` et `e` en **minutes, en texte** (secondes ÷ 60, arrondi à l'entier inférieur).
+- Côté cloud : `PATCH /v1/devices/:id/program` avec le même `{"program": ...}`. L'intégration ne lit pas ce champ.
+
+**Mise à jour du firmware (OTA).** L'application récupère le firmware par morceaux sur le serveur cloud (`GET kfota/available/ble`, `kfota/available/cloud`, `kfota/chunks`), envoie chaque morceau avec `ble_ota`, puis attend `ble_ota_next` (champ `chunk`) avant le suivant. Une erreur en cours de route peut rendre un radiateur inutilisable : l'intégration ne la propose pas et ne le fera pas sans essais sur un radiateur dédié.
+
 ## Limites connues
 
 - **Portée** : le Bluetooth Low Energy porte à une pièce ou deux. Vers −80 dBm, les annonces du radiateur n'arrivent que de temps en temps : la connexion peut demander plusieurs essais, et l'appairage peut échouer faute d'annonce récente en mode appairage (constaté sur un radiateur à −80 dBm). Rapprocher l'adaptateur, ou un [proxy Bluetooth ESPHome](https://esphome.io/projects/?type=bluetooth) près des radiateurs, règle ce problème (voir [À travers un proxy Bluetooth ESPHome](#à-travers-un-proxy-bluetooth-esphome)).
 - **Une connexion par radiateur** : chaque radiateur est une entrée séparée. Le radiateur coupe les connexions inactives ; l'intégration se reconnecte à l'opération suivante.
 - **Vérifié sur un vrai radiateur** : lecture de tous les attributs, températures de consigne, passage en chauffage manuel et retour au planning (confirmés en une dizaine de secondes), changements faits sur le radiateur reçus aussitôt.
 - **Partiellement vérifié** : le bouton Identifier (`ping`) est acquitté par le radiateur, mais son bip n'a pas été confirmé.
-- **Programmation horaire et mises à jour du firmware** : non prises en charge.
+- **Programmation horaire et mises à jour du firmware** : non prises en charge ([détails](#fonctions-non-prises-en-charge-programmation-horaire-ota)).
 - **Appairage hors Linux** : l'agent d'appairage passe par BlueZ (D-Bus). Sans BlueZ (Home Assistant sous Windows ou macOS), l'appairage n'est géré qu'à travers un proxy ESPHome.
 - **Un proxy par radiateur** : la clé est gardée par l'ESP32 qui a appairé le radiateur. Un autre ESP32, ou l'adaptateur de Home Assistant, ne peut pas s'y connecter sans nouvel appairage.
 
