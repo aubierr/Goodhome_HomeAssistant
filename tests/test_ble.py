@@ -9,6 +9,7 @@ from custom_components.goodhome.ble import (
     build_frame,
     build_get_attr,
     build_set_attr,
+    build_set_mobile_name,
     checksum,
     from_radiator,
     split_chunks,
@@ -141,3 +142,13 @@ def test_mode_change_carries_its_temperature_and_schedule_state():
     assert complete_mode_change({"targetMode": 1}, {}) == {"targetMode": 1, "noprog": True}
     # Choix explicite conservé
     assert complete_mode_change({"targetMode": 1, "noprog": False}, state)["noprog"] is False
+
+
+def test_set_mobile_name_format():
+    # Format relevé dans l'application GoodHome Connect : params est le nom, une chaîne
+    assert build_set_mobile_name("Home Assistant", "7") == {
+        "type": "command",
+        "cmdName": "system.bluetooth_set_mobile_device_name",
+        "cmdID": "7",
+        "params": "Home Assistant",
+    }
