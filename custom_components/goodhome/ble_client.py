@@ -41,6 +41,8 @@ COMMAND_TIMEOUT = 10  # Attente de la réponse « return » à une commande (sec
 ATTRIBUTES_TIMEOUT = 10  # Attente des attributs après getAttr (secondes)
 ATTRIBUTES_QUIET = 1.5  # Les attributs arrivent en plusieurs messages : fin après ce silence
 CHUNK_DELAY = 0.05  # Pause entre deux morceaux écrits, comme l'appli
+READ_ATTEMPTS = 2  # Essais d'une relecture avant de la déclarer échouée
+RETRY_DELAY = 3  # Pause avant de réessayer une relecture (secondes)
 
 
 class GoodHomeBleError(GoodHomeError):
@@ -439,14 +441,21 @@ class GoodHomeBleClient:
     async def async_get_devices(self) -> dict[str, dict]:
         """Lire tous les attributs du radiateur."""
         async with self._lock:
-            try:
-                await self._async_ensure_connected()
-                await self._async_read_attributes()
-            except GoodHomeBleError:
-                self._reachable = False
-                # Liaison peut-être encore ouverte mais muette : repartir d'une connexion neuve
-                await self.async_close()
-                raise
+            for attempt in range(READ_ATTEMPTS):
+                try:
+                    await self._async_ensure_connected()
+                    await self._async_read_attributes()
+                except GoodHomeBleError as err:
+                    # Liaison peut-être encore ouverte mais muette : repartir d'une connexion neuve
+                    await self.async_close()
+                    if attempt + 1 == READ_ATTEMPTS:
+                        self._reachable = False
+                        raise
+                    # Un proxy ESP32 sature vite (erreurs 133/143) : réessayer après une pause
+                    _LOGGER.debug("Read of %s failed (%s), trying again", self.address, err)
+                    await asyncio.sleep(RETRY_DELAY)
+                else:
+                    break
             self._reachable = True
         return self._devices()
 
