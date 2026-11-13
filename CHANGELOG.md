@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.12] - 2026-11-13
+
+### Documentation
+- 📚 [docs/BLUETOOTH.md](docs/BLUETOOTH.md) repris : résumé « En bref » en tête, nouvelle section « Conformité avec l'application officielle » (comparaison avec GoodHome Connect 2.1.4 décompilée : UUID, MTU, ordre du checksum, ACK/NACK, `cmdID`, appairage, attributs, écarts sans conséquence), et formats de la programmation horaire (`ble_get_prog` / `ble_set_prog`) et de l'OTA (`ble_ota` / `ble_ota_next`) regroupés dans « Fonctions non prises en charge ». Aucun changement de code
+
 ## [2.2.11] - 2026-11-13
 
 ### Corrigé
