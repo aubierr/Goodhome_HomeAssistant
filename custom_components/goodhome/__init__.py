@@ -148,13 +148,12 @@ async def _async_setup_local_entry(hass: HomeAssistant, entry: GoodHomeConfigEnt
     )
     coordinator = GoodHomeCoordinator(hass, entry, client)
     client.on_update = coordinator.async_set_updated_data
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except ConfigEntryNotReady:
-        await client.async_close()
-        raise
     entry.runtime_data = GoodHomeData(coordinator=coordinator, push=None)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Ne pas attendre le radiateur : se connecter peut durer une minute ou échouer (radiateur
+    # éteint, proxy saturé). L'installation ne bloque plus le démarrage de Home Assistant, les
+    # entités apparaissent dès la première réponse, et la relecture périodique réessaie sinon.
+    entry.async_create_background_task(hass, coordinator.async_refresh(), f"goodhome first refresh {entry.title}")
     return True
 
 
