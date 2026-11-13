@@ -488,16 +488,32 @@ class GoodHomeBleClient:
             await self._async_start(bleak_client, attempts)
 
     async def async_set_mobile_name(self, name: str) -> None:
-        """Nommer Home Assistant dans la liste des mobiles du radiateur (au mieux, sans erreur)."""
+        """Nommer Home Assistant dans la liste des mobiles du radiateur (au mieux, sans erreur).
+
+        Les listes d'appareils appairés avant et après, et la réponse du radiateur, sont écrites
+        dans le journal (niveau info) : le format de la commande n'est pas vérifié.
+        """
         async with self._lock:
+            await self._async_log_paired_devices("before")
             try:
                 reply = await self._async_command(
                     lambda cmd_id: build_set_mobile_name(self._src_id, name, cmd_id)
                 )
             except GoodHomeBleError as err:
-                _LOGGER.debug("Could not set the mobile name on %s: %s", self.address, err)
+                _LOGGER.info("Could not set the mobile name on %s: %s", self.address, err)
             else:
-                _LOGGER.debug("Mobile name set to %r on %s, reply: %s", name, self.address, reply)
+                _LOGGER.info("Mobile name set to %r on %s, reply: %s", name, self.address, reply)
+            await self._async_log_paired_devices("after")
+
+    async def _async_log_paired_devices(self, when: str) -> None:
+        try:
+            reply = await self._async_command(
+                lambda cmd_id: build_system_command("system.bluetooth_get_paired_devices", cmd_id)
+            )
+        except GoodHomeBleError as err:
+            _LOGGER.info("Could not read the paired devices of %s (%s naming): %s", self.address, when, err)
+        else:
+            _LOGGER.info("Paired devices of %s (%s naming): %s", self.address, when, reply)
 
     async def async_close(self) -> None:
         """Se déconnecter."""
