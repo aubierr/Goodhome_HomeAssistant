@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.8] - 2026-11-13
+
+### Modifié
+- 🔍 **Bluetooth local : liste des appareils appairés dans le journal.** Après l'appairage, l'intégration lit `system.bluetooth_get_paired_devices` avant et après l'envoi du nom « Home Assistant », et écrit ces listes et la réponse du radiateur dans le journal (niveau info), pour trouver le vrai format de la commande de nommage, qui ne fonctionne pas encore sur un radiateur réel
+
 ## [2.2.7] - 2026-11-13
 
 ### Ajouté
