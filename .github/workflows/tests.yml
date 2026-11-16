@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Chaque lundi : détecte les cassures dues aux nouvelles versions de Home Assistant
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Version minimale annoncée dans hacs.json
+          - name: HA 2025.1 (Linux)
+            os: ubuntu-latest
+            python: "3.12"
+            install: pip install -r requirements_test.txt
+          # Seul Windows exécute la branche win32 de tests/conftest.py ;
+          # HA récent n'y est pas installable (module fcntl absent)
+          - name: HA 2025.1 (Windows)
+            os: windows-latest
+            python: "3.12"
+            install: pip install -r requirements_test.txt
+          # Dernier kit de test, sans les pins de requirements_test.txt
+          - name: HA récent (Linux)
+            os: ubuntu-latest
+            python: "3.14"
+            install: pip install --upgrade pytest-homeassistant-custom-component
+    steps:
+      # Actions épinglées par SHA de commit (v4 et v5)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      - run: ${{ matrix.install }}
+      # Versions réellement testées, pour reproduire un échec
+      - run: pip list
+      - run: python -m pytest -q
