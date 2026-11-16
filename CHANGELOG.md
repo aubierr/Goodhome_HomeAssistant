@@ -5,7 +5,9 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [2.3.1] - 2026-11-16
+
+Aucun changement de code par rapport à 2.3.0 : cette version ajoute seulement les tests automatiques sur GitHub.
 
 ### Ajouté
 - 👷 CI : workflow GitHub Actions `Tests` qui lance la suite de tests avec Home Assistant 2025.1 (Linux et Windows) et avec la dernière version (Linux), à chaque push, pull request et chaque lundi
